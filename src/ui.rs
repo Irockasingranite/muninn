@@ -1,9 +1,19 @@
-use gtk::{Application, ApplicationWindow, Builder, Button, Box, Image};
+use crate::data::DataSlice;
+use gtk::{Application, ApplicationWindow, Builder, Button, Image};
 use gtk::prelude::*;
 
 use crate::plotting::{test_plot};
 
-pub fn build_ui(application: &Application) {
+use gdk_pixbuf::{Pixbuf, PixbufLoader, PixbufLoaderExt};
+fn pixbuf_from_string(s: &str) -> Pixbuf {
+    let loader = PixbufLoader::new();
+    loader.write(s.as_bytes()).expect("Failed to load string into Pixbuf");
+    loader.close()
+        .expect("Failed to close PixBufLoader");
+    loader.get_pixbuf().unwrap()
+}
+
+pub fn build_ui(application: &Application, data_slice: DataSlice) {
     let glade_src = include_str!("../layout.glade");
     let builder = Builder::new_from_string(glade_src);
 
@@ -16,18 +26,25 @@ pub fn build_ui(application: &Application) {
 
     // let pixbuf = image.get_pixbuf().unwrap();
 
-    let button: Button = builder.get_object("button")
-        .expect("Failed to get button");
+    let test_plot_button: Button = builder.get_object("test_plot_button")
+        .expect("Failed to get test_plot_button");
 
-    button.connect_clicked(move |_| {
-        use gdk_pixbuf::{PixbufLoader, PixbufLoaderExt};
-        let loader = PixbufLoader::new();
+    let image_clone = image.clone();
+    test_plot_button.connect_clicked(move |_| {
         let svg_string = test_plot();
-        loader.write(svg_string.as_bytes())
-            .expect("Failed to write svg to loader");
-        loader.close().expect("Failed to close loader");
-        let buf = loader.get_pixbuf();
-        image.set_from_pixbuf(buf.as_ref());
+        let buf = pixbuf_from_string(&svg_string);
+        image_clone.set_from_pixbuf(Some(&buf));
+    });
+
+    let t3_button: Button = builder.get_object("t3_button")
+        .expect("Failed to get t3_button");
+
+    let image_clone = image.clone();
+    t3_button.connect_clicked(move |_| {
+        use crate::plotting::{plot_data_slice_to_svg};
+        let svg_string = plot_data_slice_to_svg(data_slice.clone());
+        let buf = pixbuf_from_string(&svg_string);
+        image_clone.set_from_pixbuf(Some(&buf));
     });
 
     window.show_all();

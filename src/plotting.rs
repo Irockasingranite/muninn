@@ -1,8 +1,13 @@
+use crate::data::DataSlice;
+
 use plotters::prelude::*;
 
 /// Take a vector of vectors of points, and plot them into an SVG file, returned as a String
-pub fn plot_points_to_svg(data: Vec<Vec<(f64,f64)>>) -> String
+// pub fn plot_data_slice_to_svg(data_slice: Vec<Vec<(f64,f64)>>) -> String
+pub fn plot_data_slice_to_svg(data_slice: DataSlice) -> String
 {
+    let (_filenames, data) = data_slice;
+
     // Parameters
     let point_size = 2; // Point Size
     let colors = vec![BLACK, BLUE, CYAN, GREEN, MAGENTA, RED, YELLOW];
@@ -82,8 +87,8 @@ pub fn test_plot() -> String {
     let points: Vec<(f64,f64)> = xs.iter().map(|&x| (x, (x*10.0).sin())).collect();
     let points2: Vec<(f64,f64)> = xs.iter().map(|&x| (x, 2.0*x)).collect();
     let points3: Vec<(f64,f64)> = xs.iter().map(|&x| (x, -2.0*x)).collect();
-    let data = vec![points, points2, points3];
-    let svg_string = plot_points_to_svg(data);
+    let data = (vec![String::from("1"), String::from("2"), String::from("3")], vec![points, points2, points3]);
+    let svg_string = plot_data_slice_to_svg(data);
     // println!("{:?}", file);
 
     // { // write string into file
