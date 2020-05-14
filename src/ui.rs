@@ -1,6 +1,7 @@
 #![allow(unused_variables)] // remove this later
 
-use gtk::{Application, ApplicationWindow, Builder, Button, Image};
+use gtk::{Application, ApplicationWindow, Builder, Button, Entry, Image};
+use gtk::{TextBufferExt};
 use gtk::prelude::*;
 use std::rc::{Rc};
 use std::cell::{RefCell};
@@ -21,13 +22,16 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
     let glade_src = include_str!("../layout.glade");
     let builder = Builder::new_from_string(glade_src);
 
+    // Main Window setup
     let window: ApplicationWindow = builder.get_object("main_app_window")
         .expect("Failed to get appWindow");
     window.set_application(Some(application));
 
+    // Plot Image setup
     let image: Image = builder.get_object("plot_image")
         .expect("Failed to get plot_image");
 
+    // Play/Pause button setup
     let play_pause_button: Button = builder.get_object("play_pause_button")
         .expect("Failed to get play_pause_button");
 
@@ -52,6 +56,22 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
             },
         }
         println!("is_playing: {}", is_playing);
+    }));
+
+    // Time entry setup
+    let current_time_entry: Entry = builder.get_object("current_time_entry")
+        .expect("Failed to get current_time_entry");
+    let current_time_entry_buffer = current_time_entry.get_buffer();
+    current_time_entry.connect_activate(clone!(@weak state_cell,
+                                               @strong current_time_entry_buffer as buf
+                                               => move |_| {
+        let text = buf.get_text();
+        match text.parse::<f64>() {
+            Ok(t) => {
+                state_cell.borrow_mut().jump_to_time(t);
+            },
+            Err(_) => (),
+        }
     }));
 
     window.show_all();

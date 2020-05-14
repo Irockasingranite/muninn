@@ -68,4 +68,23 @@ impl State {
             println!("Making Step! t = {}", self.current_time);
         }
     }
+
+    pub fn jump_to_time(&mut self, time: f64) {
+        if let Some(d) = &self.loaded_data {
+            // clamp target time to available data
+            let mut target_time = time;
+            if target_time < d.start_time {
+                target_time = d.start_time;
+            }
+            if target_time > d.end_time {
+                target_time = d.end_time;
+            }
+
+            // find correct target step
+            let target_step = self.times.iter().rposition(|t| target_time >= *t).unwrap();
+            self.current_step = target_step;
+            self.current_slice = Some(d.at_time(target_time));
+            self.current_time = target_time;
+        }
+    }
 }
