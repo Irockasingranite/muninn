@@ -2,14 +2,15 @@ use crate::data::{Data, DataSlice};
 
 #[derive(Clone)]
 pub struct State {
-    current_step: usize, // currently displayed timestep
-    current_time: f64, // time value of displayed timestep
-    n_steps: usize, // total number of timesteps in loaded data
-    times: Vec<f64>, // time values for all steps
-    update_interval: i32, // in ms
-    timestep_interval: i32, // allows skipping timesteps
+    pub current_step: usize, // currently displayed timestep
+    pub current_time: f64, // time value of displayed timestep
+    pub n_steps: usize, // total number of timesteps in loaded data
+    pub times: Vec<f64>, // time values for all steps
+    pub update_interval: i32, // in ms
+    pub timestep_interval: i32, // allows skipping timesteps
     loaded_data: Option<Data>, // Currently loaded dataset
     current_slice: Option<DataSlice>, // Slice for current timestep
+    pub is_playing: bool, // Whether the plot is being animated
 }
 
 impl State {
@@ -23,6 +24,7 @@ impl State {
             timestep_interval: 1,
             loaded_data: None,
             current_slice: None,
+            is_playing: false,
         }
     }
 

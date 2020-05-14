@@ -255,7 +255,7 @@
           <object class="GtkImage" id="plot_image">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="pixbuf">test</property>
+            <property name="icon_name">action-unavailable-symbolic</property>
           </object>
           <packing>
             <property name="expand">False</property>

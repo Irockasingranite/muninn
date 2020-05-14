@@ -3,7 +3,7 @@ mod ui;
 mod data;
 mod state;
 
-use glib::clone;
+use glib::{clone};
 use gio::prelude::*;
 use gtk::{Application};
 use ui::{build_ui};
