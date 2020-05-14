@@ -53,5 +53,6 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
         }
         println!("is_playing: {}", is_playing);
     }));
+
     window.show_all();
 }

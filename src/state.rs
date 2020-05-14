@@ -1,4 +1,5 @@
 use crate::data::{Data, DataSlice};
+use std::time::{Instant};
 
 #[derive(Clone)]
 pub struct State {
@@ -7,10 +8,11 @@ pub struct State {
     pub n_steps: usize, // total number of timesteps in loaded data
     pub times: Vec<f64>, // time values for all steps
     pub update_interval: i32, // in ms
-    pub timestep_interval: i32, // allows skipping timesteps
+    pub timestep_interval: usize, // allows skipping timesteps
     loaded_data: Option<Data>, // Currently loaded dataset
     current_slice: Option<DataSlice>, // Slice for current timestep
     pub is_playing: bool, // Whether the plot is being animated
+    last_step_made_at: Instant, // time when last frame was rendered
 }
 
 impl State {
@@ -25,6 +27,7 @@ impl State {
             loaded_data: None,
             current_slice: None,
             is_playing: false,
+            last_step_made_at: Instant::now(),
         }
     }
 
@@ -49,5 +52,20 @@ impl State {
         let mut state = State::new();
         state.load_data(data);
         state
+    }
+
+    pub fn advance_animation(&mut self) {
+        let now = Instant::now();
+        let time_since_last_step = now.duration_since(self.last_step_made_at);
+        if time_since_last_step.as_millis() > self.update_interval as u128 {
+            // advance one or more steps
+            let target_step = std::cmp::min(self.current_step + self.timestep_interval, self.n_steps-1);
+            let target_time = self.times[target_step];
+            self.current_slice = Some(self.loaded_data.as_ref().unwrap().at_time(target_time));
+            self.current_step = target_step;
+            self.current_time = target_time;
+            self.last_step_made_at = Instant::now();
+            println!("Making Step! t = {}", self.current_time);
+        }
     }
 }
