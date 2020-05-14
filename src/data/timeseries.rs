@@ -4,11 +4,11 @@ pub type Point = (f64, f64);
 pub type DataLine = Vec<Point>;
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TimeSeries {
-    times: Vec<f64>,
-    start_time: f64,
-    end_time: f64,
+    pub times: Vec<f64>,
+    pub start_time: f64,
+    pub end_time: f64,
     data_lines: Vec<DataLine>,
 }
 
@@ -75,7 +75,7 @@ impl TimeSeries {
         if time > self.end_time || time < self.start_time {
             None
         } else {
-            let index = self.times.iter().rposition(|t| time > *t).unwrap();
+            let index = self.times.iter().rposition(|t| time >= *t).unwrap();
 
             Some(&self.data_lines[index as usize])
         }

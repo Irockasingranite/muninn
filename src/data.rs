@@ -3,9 +3,10 @@ pub use timeseries::{TimeSeries, DataLine, Point};
 
 pub type DataSlice = (Vec<String>, Vec<DataLine>);
 
+#[derive(Clone)]
 pub struct Data {
-    filenames: Vec<String>,
-    timeseries: Vec<TimeSeries>,
+    pub filenames: Vec<String>,
+    pub timeseries: Vec<TimeSeries>,
 }
 
 impl Data {
