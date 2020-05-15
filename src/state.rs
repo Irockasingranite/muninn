@@ -13,6 +13,7 @@ pub struct State {
     current_slice: Option<DataSlice>, // Slice for current timestep
     pub is_playing: bool, // Whether the plot is being animated
     last_step_made_at: Instant, // time when last frame was rendered
+    pub plotted_time: Option<f64>, // which time is represented by the shown plot
 }
 
 impl State {
@@ -28,6 +29,7 @@ impl State {
             current_slice: None,
             is_playing: false,
             last_step_made_at: Instant::now(),
+            plotted_time: None,
         }
     }
 
@@ -65,7 +67,6 @@ impl State {
             self.current_step = target_step;
             self.current_time = target_time;
             self.last_step_made_at = Instant::now();
-            println!("Making Step! t = {}", self.current_time);
         }
     }
 
@@ -86,5 +87,26 @@ impl State {
             self.current_slice = Some(d.at_time(target_time));
             self.current_time = target_time;
         }
+    }
+
+    pub fn update_plot(&mut self) -> Option<String> {
+        use crate::plotting::{plot_data_slice_to_svg};
+        if let Some(d) = &self.loaded_data {
+            let svg_string: String = match &self.current_slice {
+                None => {
+                    let s = d.at_time(self.current_time);
+                    let string = plot_data_slice_to_svg(&s);
+                    self.current_slice = Some(s);
+                    self.plotted_time = Some(self.current_time);
+                    string
+                },
+                Some(s) => {
+                    self.plotted_time = Some(self.current_time);
+                    plot_data_slice_to_svg(&s)
+                },
+            };
+            return Some(svg_string)
+        }
+        None
     }
 }

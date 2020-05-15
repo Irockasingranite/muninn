@@ -28,7 +28,7 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
     window.set_application(Some(application));
 
     // Plot Image setup
-    let image: Image = builder.get_object("plot_image")
+    let plot_image: Image = builder.get_object("plot_image")
         .expect("Failed to get plot_image");
 
     // Play/Pause button setup
@@ -55,7 +55,6 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
                 play_pause_button.set_image(Some(&pause_icon));
             },
         }
-        println!("is_playing: {}", is_playing);
     }));
 
     // Time entry setup
@@ -77,13 +76,28 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
     // Custom update routine (called every 10 ms)
     let state_clone = state_cell.clone();
     let current_time_entry_buffer_clone = current_time_entry_buffer.clone();
+    let plot_image_clone = plot_image.clone();
     timeout_add(10, move || {
+        let time = state_clone.borrow().current_time;
+        
+        // Animation of state
         let is_playing = state_clone.borrow().is_playing;
         if is_playing {
             state_clone.borrow_mut().advance_animation();
-            let time = state_clone.borrow().current_time;
             current_time_entry_buffer_clone.set_text(format!("{:.2}", time).as_str());
         }
+
+        // Update plot if necessary
+        let plotted_time = state_clone.borrow_mut().plotted_time;
+        if plotted_time != Some(time) {
+            let svg_string = state_clone.borrow_mut().update_plot();
+            if let Some(s) = svg_string {
+                let buf = pixbuf_from_string(&s);
+                plot_image_clone.set_from_pixbuf(Some(&buf));
+            }
+
+        }
+
         return Continue(true);
     });
 

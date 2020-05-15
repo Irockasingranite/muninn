@@ -4,7 +4,7 @@ use plotters::prelude::*;
 
 /// Take a vector of vectors of points, and plot them into an SVG file, returned as a String
 // pub fn plot_data_slice_to_svg(data_slice: Vec<Vec<(f64,f64)>>) -> String
-pub fn plot_data_slice_to_svg(data_slice: DataSlice) -> String
+pub fn plot_data_slice_to_svg(data_slice: &DataSlice) -> String
 {
     let (_filenames, data) = data_slice;
 
@@ -19,7 +19,7 @@ pub fn plot_data_slice_to_svg(data_slice: DataSlice) -> String
     let mut xmins = Vec::new();
     let mut ymaxs = Vec::new();
     let mut ymins = Vec::new();
-    for series in &data {
+    for series in data {
         xmaxs.push(series.iter().max_by(|(x1,_),(x2,_)| x1.partial_cmp(x2).unwrap()).unwrap().0);
         xmins.push(series.iter().min_by(|(x1,_),(x2,_)| x1.partial_cmp(x2).unwrap()).unwrap().0);
         ymaxs.push(series.iter().max_by(|(_,y1),(_,y2)| y1.partial_cmp(y2).unwrap()).unwrap().1);
@@ -88,7 +88,7 @@ pub fn test_plot() -> String {
     let points2: Vec<(f64,f64)> = xs.iter().map(|&x| (x, 2.0*x)).collect();
     let points3: Vec<(f64,f64)> = xs.iter().map(|&x| (x, -2.0*x)).collect();
     let data = (vec![String::from("1"), String::from("2"), String::from("3")], vec![points, points2, points3]);
-    let svg_string = plot_data_slice_to_svg(data);
+    let svg_string = plot_data_slice_to_svg(&data);
     // println!("{:?}", file);
 
     // { // write string into file
