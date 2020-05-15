@@ -67,7 +67,10 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
         let text = buf.get_text();
         match text.parse::<f64>() {
             Ok(t) => {
-                state_cell.borrow_mut().jump_to_time(t);
+                let new_time = state_cell.borrow_mut().jump_to_time(t);
+                if let Some(t) = new_time {
+                    buf.set_text(format!("{:.3}", t).as_str());
+                }
             },
             Err(_) => (),
         }
@@ -84,7 +87,7 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
         let is_playing = state_clone.borrow().is_playing;
         if is_playing {
             state_clone.borrow_mut().advance_animation();
-            current_time_entry_buffer_clone.set_text(format!("{:.2}", time).as_str());
+            current_time_entry_buffer_clone.set_text(format!("{:.3}", time).as_str());
         }
 
         // Update plot if necessary

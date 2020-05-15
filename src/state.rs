@@ -70,7 +70,7 @@ impl State {
         }
     }
 
-    pub fn jump_to_time(&mut self, time: f64) {
+    pub fn jump_to_time(&mut self, time: f64) -> Option<f64> {
         if let Some(d) = &self.loaded_data {
             // clamp target time to available data
             let mut target_time = time;
@@ -86,7 +86,9 @@ impl State {
             self.current_step = target_step;
             self.current_slice = Some(d.at_time(target_time));
             self.current_time = target_time;
+            return Some(target_time);
         }
+        None
     }
 
     pub fn update_plot(&mut self) -> Option<String> {

@@ -23,8 +23,8 @@ impl Data {
 
     pub fn from_files(filenames: Vec<String>) -> Data {
         let mut data = Data::new();
-        let mut start_time = 0.0;
-        let mut end_time = 0.0;
+        let mut start_time = std::f64::MAX;
+        let mut end_time = std::f64::MIN;
 
         for filename in filenames {
             if let Ok(ts) = TimeSeries::from_file(&filename) {
