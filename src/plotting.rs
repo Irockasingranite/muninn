@@ -72,34 +72,3 @@ pub fn plot_data_slice_to_svg(data_slice: &DataSlice) -> String
     // Return "file"
     svg_string
 }
-
-/// Create a vector of f64's with equidistant values
-fn float_range(xmin: f64, xmax: f64, n: usize) -> Vec<f64> {
-    let d = xmax - xmin;
-    let dx = d / ((n-1) as f64);
-    let xs = (0..n).map(|x| x as f64 * dx + xmin).collect();
-    xs
-}
-
-/// Create a test plot with 3 lines as an svg string
-pub fn test_plot() -> String {
-    let xs = float_range(-1.0, 1.0, 100);
-    let points: Vec<(f64,f64)> = xs.iter().map(|&x| (x, (x*10.0).sin())).collect();
-    let points2: Vec<(f64,f64)> = xs.iter().map(|&x| (x, 2.0*x)).collect();
-    let points3: Vec<(f64,f64)> = xs.iter().map(|&x| (x, -2.0*x)).collect();
-    let data = (vec![String::from("1"), String::from("2"), String::from("3")], vec![points, points2, points3]);
-    let svg_string = plot_data_slice_to_svg(&data);
-    // println!("{:?}", file);
-
-    // { // write string into file
-    //     use std::path::Path;
-    //     use std::fs::File;
-    //     use std::io::prelude::*;
-
-    //     let file_path = Path::new("src/0.svg");
-    //     let mut file = File::create(&file_path).expect("Failed to create file");
-    //     file.write_all(svg_string.as_bytes()).expect("Failed to write file");
-    // }
-
-    return svg_string
-}

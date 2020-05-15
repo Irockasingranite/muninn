@@ -1,5 +1,3 @@
-#![allow(dead_code)] // remove this later
-
 pub type Point = (f64, f64);
 pub type DataLine = Vec<Point>;
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
@@ -13,15 +11,6 @@ pub struct TimeSeries {
 }
 
 impl TimeSeries {
-    pub fn new() -> TimeSeries {
-        TimeSeries{
-            times: Vec::new(),
-            start_time: 0.0,
-            end_time: 0.0,
-            data_lines: Vec::new(),
-        }
-    }
-
     /// Read in a file and parse it into a valid TimeSeries
     pub fn from_file(filename: &str) -> Result<TimeSeries> {
         use std::fs::File;

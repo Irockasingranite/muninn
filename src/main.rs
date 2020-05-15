@@ -5,7 +5,6 @@ mod state;
 
 use glib::{clone};
 use gio::prelude::*;
-use gtk::prelude::*;
 use gtk::{Application};
 use ui::{build_ui};
 

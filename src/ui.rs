@@ -1,7 +1,4 @@
-#![allow(unused_variables)] // remove this later
-
 use gtk::{Application, ApplicationWindow, Builder, Button, Entry, Image};
-use gtk::{TextBufferExt};
 use gtk::prelude::*;
 use std::rc::{Rc};
 use std::cell::{RefCell};
