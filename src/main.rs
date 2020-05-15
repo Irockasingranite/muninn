@@ -29,14 +29,5 @@ fn main() {
         build_ui(app, state_cell);
     }));
 
-    let state_clone = state_cell.clone();
-    timeout_add(10, move || {
-        let is_playing = state_clone.borrow().is_playing;
-        if is_playing {
-            state_clone.borrow_mut().advance_animation();
-        }
-        return Continue(true);
-    });
-
     application.run(&[]);
 }

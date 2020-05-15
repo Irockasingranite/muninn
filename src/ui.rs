@@ -74,5 +74,18 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
         }
     }));
 
+    // Custom update routine (called every 10 ms)
+    let state_clone = state_cell.clone();
+    let current_time_entry_buffer_clone = current_time_entry_buffer.clone();
+    timeout_add(10, move || {
+        let is_playing = state_clone.borrow().is_playing;
+        if is_playing {
+            state_clone.borrow_mut().advance_animation();
+            let time = state_clone.borrow().current_time;
+            current_time_entry_buffer_clone.set_text(format!("{:.2}", time).as_str());
+        }
+        return Continue(true);
+    });
+
     window.show_all();
 }
