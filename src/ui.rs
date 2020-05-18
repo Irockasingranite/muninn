@@ -1,4 +1,4 @@
-use gtk::{Application, ApplicationWindow, Builder, Button, Entry, Image};
+use gtk::{Application, ApplicationWindow, Builder, Button, Entry, Image, SpinButton};
 use gtk::prelude::*;
 use std::rc::{Rc};
 use std::cell::{RefCell};
@@ -118,6 +118,27 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
             current_time_entry_buffer.set_text(format!("{:.3}",t).as_str());
         }
     }));
+
+    // Update interval spinbutton setup
+    let update_interval_spinbutton: SpinButton = builder.get_object("update_interval_spinbutton")
+        .expect("Failed to get update_interval_spinbutton");
+    let update_interval_spinbutton_adjustment = update_interval_spinbutton.get_adjustment();
+    update_interval_spinbutton_adjustment.connect_value_changed(clone!(@strong update_interval_spinbutton,
+                                                                       @weak state_cell => move |_| {
+        let value = update_interval_spinbutton.get_value();
+        state_cell.borrow_mut().update_interval = value as i32;
+    }));
+
+    // Timestep interval spinbutton setup
+    let timestep_interval_spinbutton: SpinButton = builder.get_object("timestep_interval_spinbutton")
+        .expect("Failed to get timestep_interval_spinbutton");
+    let timestep_interval_spinbutton_adjustment = timestep_interval_spinbutton.get_adjustment();
+    timestep_interval_spinbutton_adjustment.connect_value_changed(clone!(@strong timestep_interval_spinbutton,
+                                                         @weak state_cell => move |_| {
+        let value = timestep_interval_spinbutton.get_value();
+        state_cell.borrow_mut().timestep_interval = value as usize;
+    }));
+
 
     // Custom update routine (called every 10 ms)
     let state_clone = state_cell.clone();
