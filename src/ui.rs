@@ -72,6 +72,52 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
             Err(_) => (),
         }
     }));
+    let time = state_cell.borrow().current_time;
+    current_time_entry_buffer.set_text(format!("{:.3}", time).as_str());
+
+    // First button setup
+    let first_button: Button = builder.get_object("first_button")
+        .expect("Failed to get first_button");
+    first_button.connect_clicked(clone!(@strong current_time_entry_buffer,
+                                        @weak state_cell => move |_| {
+        let time = state_cell.borrow_mut().go_to_first_step();
+        if let Some(t) = time {
+            current_time_entry_buffer.set_text(format!("{:.3}", t).as_str());
+        }
+    }));   
+
+    // Previous button setup
+    let previous_button: Button = builder.get_object("previous_button")
+        .expect("Failed to get previous_button");
+    previous_button.connect_clicked(clone!(@strong current_time_entry_buffer,
+                                           @weak state_cell => move |_| {
+        let time = state_cell.borrow_mut().go_to_previous_step();
+        if let Some(t) = time {
+            current_time_entry_buffer.set_text(format!("{:.3}", t).as_str());
+        }
+    }));
+
+    // Next button setup
+    let next_button: Button = builder.get_object("next_button")
+        .expect("Failed to get next_button");
+    next_button.connect_clicked(clone!(@strong current_time_entry_buffer,
+                                       @weak state_cell => move |_| {
+        let time = state_cell.borrow_mut().go_to_next_step();
+        if let Some(t) = time {
+            current_time_entry_buffer.set_text(format!("{:.3}", t).as_str());
+        }
+    }));
+
+    // Last button setup
+    let last_button: Button = builder.get_object("last_button")
+        .expect("Failed to get last_button");
+    last_button.connect_clicked(clone!(@strong current_time_entry_buffer,
+                                       @weak state_cell => move |_| {
+        let time = state_cell.borrow_mut().go_to_last_step();
+        if let Some(t) = time {
+            current_time_entry_buffer.set_text(format!("{:.3}",t).as_str());
+        }
+    }));
 
     // Custom update routine (called every 10 ms)
     let state_clone = state_cell.clone();

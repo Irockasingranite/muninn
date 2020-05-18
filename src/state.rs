@@ -62,10 +62,7 @@ impl State {
         if time_since_last_step.as_millis() > self.update_interval as u128 {
             // advance one or more steps
             let target_step = std::cmp::min(self.current_step + self.timestep_interval, self.n_steps-1);
-            let target_time = self.times[target_step];
-            self.current_slice = Some(self.loaded_data.as_ref().unwrap().at_time(target_time));
-            self.current_step = target_step;
-            self.current_time = target_time;
+            self.go_to_step(target_step);
             self.last_step_made_at = Instant::now();
         }
     }
@@ -89,6 +86,46 @@ impl State {
             return Some(target_time);
         }
         None
+    }
+
+    /// Set state to a specified time steps. Returns time at that step. Returns None if no steps are loaded.
+    pub fn go_to_step(&mut self, step: usize) -> Option<f64> {
+        if let Some(d) = &self.loaded_data {
+            let mut target_step = step;
+            if target_step >= self.n_steps {
+                target_step = self.n_steps - 1;
+            }
+            self.current_step = target_step;
+            let target_time = self.times[target_step];
+            self.current_slice = Some(d.at_time(target_time));
+            self.current_time = target_time;
+            return Some(target_time);
+        } else {
+            return None;
+        }
+    }
+
+    pub fn go_to_first_step(&mut self) -> Option<f64> {
+        self.go_to_step(0)
+    }
+
+    pub fn go_to_previous_step(&mut self) -> Option<f64> {
+        let target_step = if self.current_step > 0 {
+            self.current_step - 1
+        } else {
+            0
+        };
+        self.go_to_step(target_step)
+    }
+
+    pub fn go_to_next_step(&mut self) -> Option<f64> {
+        let step = self.current_step + 1;
+        self.go_to_step(step)
+    }
+
+    pub fn go_to_last_step(&mut self) -> Option<f64> {
+        let step = self.n_steps - 1;
+        self.go_to_step(step)
     }
 
     pub fn update_plot(&mut self) -> Option<String> {
