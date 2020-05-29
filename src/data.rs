@@ -21,7 +21,7 @@ impl Data {
         }
     }
 
-    pub fn from_files(filenames: Vec<String>) -> Data {
+    pub fn from_files(filenames: Vec<String>) -> Option<Data> {
         let mut data = Data::new();
         let mut start_time = std::f64::MAX;
         let mut end_time = std::f64::MIN;
@@ -42,7 +42,11 @@ impl Data {
         data.start_time = start_time;
         data.end_time = end_time;
 
-        data
+        if data.timeseries.len() == 0 {
+            return None;
+        } else {
+            return Some(data);
+        }
     }
 
     pub fn at_time(&self, time: f64) -> DataSlice {

@@ -8,6 +8,7 @@ use gio::prelude::*;
 use gtk::{Application};
 use ui::{build_ui};
 
+use std::env;
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
@@ -17,11 +18,16 @@ fn main() {
         gio::ApplicationFlags::empty(),
     ).expect("Failed to initialize GTK application");
     
+    let args: Vec<String> = env::args().collect();
 
     use data::{Data};
     use state::{State};
-    let data = Data::from_files(vec![String::from("test.dat")]);
-    let state = State::from_data(data);
+
+    let data = Data::from_files(args);
+    let state = match data {
+        Some(d) => State::from_data(d),
+        None => State::new(),
+    };
 
     let state_cell = Rc::new(RefCell::new(state));
     application.connect_activate(clone!(@weak state_cell => move |app| {

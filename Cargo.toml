@@ -8,6 +8,7 @@ edition = "2018"
 plotters = "^0.2.14"
 gdk-pixbuf = "0.8.0"
 glib = "0.9.3"
+gdk = "0.12.1"
 
 [dependencies.gtk]
 version = "0.8.1"

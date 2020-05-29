@@ -1,4 +1,4 @@
-use gtk::{Application, ApplicationWindow, Builder, Button, Entry, Image, SpinButton};
+use gtk::{Application, ApplicationWindow, Builder, Button, Entry, EventBox, Image, SpinButton};
 use gtk::prelude::*;
 use std::rc::{Rc};
 use std::cell::{RefCell};
@@ -27,6 +27,21 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
     // Plot Image setup
     let plot_image: Image = builder.get_object("plot_image")
         .expect("Failed to get plot_image");
+    let plot_image_event_box: EventBox = builder.get_object("plot_image_event_box")
+        .expect("Failed to get plot_image_event_box");
+    plot_image_event_box.add_events(gdk::EventMask::SCROLL_MASK);
+    plot_image_event_box.connect_scroll_event(move |_, event| {
+        let (x, y) = event.get_position();
+        println!("scroll at ({}, {})!", x, y);
+        return Inhibit(false);
+    });
+    plot_image.connect_size_allocate(clone!(@weak state_cell => move |_, allocation| {
+        let width = allocation.width as u32;
+        let height = allocation.height as u32;
+        state_cell.borrow_mut().plot_image_size = (width, height);
+        println!("Setting image to ({}, {})", width, height);
+        state_cell.borrow_mut().update_needed = true;
+    }));
 
     // Play/Pause button setup
     let play_pause_button: Button = builder.get_object("play_pause_button")
@@ -41,6 +56,9 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
                                              @strong play_pause_button,
                                              @strong play_icon,
                                              @strong pause_icon => move |_| {
+        if state_cell.borrow().loaded_data.is_none() {
+            return;
+        }
         let ref mut is_playing = state_cell.borrow_mut().is_playing;
         match *is_playing {
             true => {
@@ -145,18 +163,18 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
     let current_time_entry_buffer_clone = current_time_entry_buffer.clone();
     let plot_image_clone = plot_image.clone();
     timeout_add(10, move || {
-        let time = state_clone.borrow().current_time;
         
         // Animation of state
         let is_playing = state_clone.borrow().is_playing;
         if is_playing {
             state_clone.borrow_mut().advance_animation();
+            let time = state_clone.borrow().current_time;
             current_time_entry_buffer_clone.set_text(format!("{:.3}", time).as_str());
         }
 
         // Update plot if necessary
-        let plotted_time = state_clone.borrow_mut().plotted_time;
-        if plotted_time != Some(time) {
+        let update_needed = state_clone.borrow_mut().update_needed;
+        if update_needed {
             let svg_string = state_clone.borrow_mut().update_plot();
             if let Some(s) = svg_string {
                 let buf = pixbuf_from_string(&s);
