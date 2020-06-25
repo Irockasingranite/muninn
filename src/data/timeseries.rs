@@ -64,9 +64,12 @@ impl TimeSeries {
         if time > self.end_time || time < self.start_time {
             None
         } else {
-            let index = self.times.iter().rposition(|t| time >= *t).unwrap();
-
-            Some(&self.data_lines[index as usize])
+            let index_option = self.times.iter().rposition(|t| time == *t);
+            if let Some(index) = index_option {
+                Some(&self.data_lines[index as usize])
+            } else {
+                None
+            }
         }
     }
 }

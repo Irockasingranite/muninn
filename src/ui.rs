@@ -39,7 +39,7 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
         let width = allocation.width as u32;
         let height = allocation.height as u32;
         state_cell.borrow_mut().plot_image_size = (width, height);
-        println!("Setting image to ({}, {})", width, height);
+        // println!("Setting image to ({}, {})", width, height);
         state_cell.borrow_mut().update_needed = true;
     }));
 

@@ -33,6 +33,7 @@ impl State {
             is_playing: false,
             last_step_made_at: Instant::now(),
             update_needed: true,
+            // plot_range: PlotRange::Fixed((0.0,20.0),(-0.1,0.1)),
             plot_range: PlotRange::Auto,
             plot_image_size: (600,400),
         }
@@ -87,7 +88,19 @@ impl State {
             }
 
             // find correct target step
+            // We also 'correct' target_time to where we actually jump to
             let target_step = self.times.iter().rposition(|t| target_time >= *t).unwrap();
+
+            if target_step < self.times.len() {
+                let time_before_target = self.times[target_step];
+                let time_after_target = self.times[target_step+1];
+                target_time = if (target_time - time_before_target) < (time_after_target - target_time) {
+                    self.times[target_step]
+                } else {
+                    self.times[target_step+1]
+                }
+            }
+
             self.current_step = target_step;
             self.current_slice = Some(d.at_time(target_time));
             self.current_time = target_time;
