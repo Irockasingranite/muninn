@@ -19,7 +19,12 @@ cd muninn
 cargo build --release
 ```
 Cargo will place the executable in `target/release`.
-You can then move it to wherever you like.
+
+To add muninn to your `$PATH` for easy access, either manually move or symlink it to e.g. `/usr/local/bin`, or use
+```
+cargo install --path .
+```
+to have cargo take care of it (by default it places the executable in `~/.cargo/bin`, which rustup added to your `$PATH`).
 
 ## Mac OSX
 (*Tested on OSX 10.15.4*)
