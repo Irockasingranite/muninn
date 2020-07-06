@@ -3,13 +3,14 @@
 ## Linux
 To compile muninn yourself, install [rustup](rustup.rs).
 You may also need to install gtk3 using your favourite package manager, e.g.:
+
 Arch Linux:
 ```
 pacman -S gtk3
 ```
 Ubuntu:
 ```
-apt-get install libgtk-3-dev
+apt install libgtk-3-dev
 ```
 
 Then clone the repository and build the project using cargo:
