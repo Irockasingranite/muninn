@@ -1,10 +1,11 @@
-use gtk::{Application, ApplicationWindow, Builder, Button, Entry, EventBox, Image, SpinButton};
+use gtk::{Application, ApplicationWindow, Builder, Button, Entry, EventBox, Image, SpinButton, ToggleButton};
 use gtk::prelude::*;
 use std::rc::{Rc};
 use std::cell::{RefCell};
 use glib::{clone};
 
 use crate::state::{State};
+use crate::plotting::{PlotRange};
 
 use gdk_pixbuf::{Pixbuf, PixbufLoader, PixbufLoaderExt};
 fn pixbuf_from_string(s: &str) -> Pixbuf {
@@ -31,16 +32,19 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
         .expect("Failed to get plot_image_event_box");
     plot_image_event_box.add_events(gdk::EventMask::SCROLL_MASK);
     plot_image_event_box.connect_scroll_event(move |_, event| {
-        let (x, y) = event.get_position();
-        println!("scroll at ({}, {})!", x, y);
+        let (_x, _y) = event.get_position();
+        // println!("scroll at ({}, {})!", x, y);
         return Inhibit(false);
     });
     plot_image.connect_size_allocate(clone!(@weak state_cell => move |_, allocation| {
         let width = allocation.width as u32;
         let height = allocation.height as u32;
-        state_cell.borrow_mut().plot_image_size = (width, height);
-        // println!("Setting image to ({}, {})", width, height);
-        state_cell.borrow_mut().update_needed = true;
+        let (current_width, curren_height) = state_cell.borrow().plot_image_size;
+        if (width, height) != (current_width, curren_height) {
+            state_cell.borrow_mut().plot_image_size = (width, height);
+            state_cell.borrow_mut().update_needed = true;
+            // println!("Setting image to ({}, {})", width, height);
+        }
     }));
 
     // Play/Pause button setup
@@ -157,10 +161,166 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
         state_cell.borrow_mut().timestep_interval = value as usize;
     }));
 
+    // Autoscale toggle setup
+    let autoscale_toggle: ToggleButton = builder.get_object("autoscale_toggle")
+        .expect("Failed to get autoscale_toggle");
+    autoscale_toggle.connect_toggled(clone!(@strong autoscale_toggle,
+                                            @weak state_cell => move |_| {
+        let checked = autoscale_toggle.get_active();
+        if checked {
+            state_cell.borrow_mut().plot_settings.plot_range = PlotRange::Auto;
+            state_cell.borrow_mut().update_needed = true;
+        } else {
+            let mut state = state_cell.borrow_mut();
+            state.plot_settings.plot_range = state.plot_range_actual;
+        }
+    }));
+    autoscale_toggle.set_active(true);
+
+    // Logscale x toggle setup
+    let logscale_x_toggle: ToggleButton = builder.get_object("logscale_x_toggle")
+        .expect("Failed to get logscale_x_toggle");
+    logscale_x_toggle.connect_toggled(clone!(@strong logscale_x_toggle,
+                                             @weak state_cell => move |_| {
+        state_cell.borrow_mut().plot_settings.use_logscale_x = logscale_x_toggle.get_active();
+        state_cell.borrow_mut().update_needed = true;
+    }));
+    logscale_x_toggle.set_active(false);
+
+    // Logscale y toggle setup
+    let logscale_y_toggle: ToggleButton = builder.get_object("logscale_y_toggle")
+        .expect("Failed to get logscale_x_toggle");
+    logscale_y_toggle.connect_toggled(clone!(@strong logscale_y_toggle,
+                                             @weak state_cell => move |_| {
+        state_cell.borrow_mut().plot_settings.use_logscale_y = logscale_y_toggle.get_active();
+        state_cell.borrow_mut().update_needed = true;
+    }));
+    logscale_y_toggle.set_active(false);    
+
+    // Line toggle setup
+    let line_toggle: ToggleButton = builder.get_object("line_toggle")
+        .expect("Failed to get line_toggle");
+    line_toggle.connect_toggled(clone!(@strong line_toggle,
+                                       @weak state_cell => move |_| {
+        state_cell.borrow_mut().plot_settings.draw_lines = line_toggle.get_active();
+        state_cell.borrow_mut().update_needed = true;
+    }));
+    line_toggle.set_active(true);
+
+    // Point toggle setup
+    let point_toggle: ToggleButton = builder.get_object("point_toggle")
+        .expect("Failed to get point_toggle");
+    point_toggle.connect_toggled(clone!(@strong point_toggle,
+                                        @weak state_cell => move |_| {
+        state_cell.borrow_mut().plot_settings.draw_points = point_toggle.get_active();
+        state_cell.borrow_mut().update_needed = true;
+    }));
+    point_toggle.set_active(true);
+
+    let color_toggle: ToggleButton = builder.get_object("color_toggle")
+        .expect("Failed to get color_toggle");
+    color_toggle.connect_toggled(clone!(@strong color_toggle,
+                                        @weak state_cell => move |_| {
+        state_cell.borrow_mut().plot_settings.use_color = color_toggle.get_active();
+        state_cell.borrow_mut().update_needed = true;
+    }));
+    color_toggle.set_active(true);
+
+    // x_min entry setup
+    let x_min_entry: Entry = builder.get_object("x_min_entry")
+        .expect("Failed to get x_min_entry");
+    let x_min_entry_buffer = x_min_entry.get_buffer();
+    x_min_entry.connect_activate(clone!(@strong x_min_entry_buffer as buf,
+                                        @strong autoscale_toggle,
+                                        @weak state_cell => move |_| {
+        let text = buf.get_text();
+        match text.parse::<f64>() {
+            Ok(x_min_new) => {
+                let ((_x_min, x_max), (y_min, y_max)) = match state_cell.borrow().plot_range_actual {
+                    PlotRange::Fixed(x_range,y_range) => (x_range, y_range),
+                    PlotRange::Auto => ((0.0, 1.0), (0.0, 1.0)),
+                };
+                autoscale_toggle.set_active(false);
+                state_cell.borrow_mut().plot_settings.plot_range = PlotRange::Fixed((x_min_new, x_max), (y_min, y_max));
+                state_cell.borrow_mut().update_needed = true;
+            },
+            Err(_) => (),
+        }
+    }));
+
+    // x_max entry setup
+    let x_max_entry: Entry = builder.get_object("x_max_entry")
+        .expect("Failed to get x_max_entry");
+    let x_max_entry_buffer = x_max_entry.get_buffer();
+    x_max_entry.connect_activate(clone!(@strong x_max_entry_buffer as buf,
+                                        @strong autoscale_toggle,
+                                        @weak state_cell => move |_| {
+        let text = buf.get_text();
+        match text.parse::<f64>() {
+            Ok(x_max_new) => {
+                let ((x_min, _x_max), (y_min, y_max)) = match state_cell.borrow().plot_range_actual {
+                    PlotRange::Fixed(x_range,y_range) => (x_range, y_range),
+                    PlotRange::Auto => ((0.0, 1.0), (0.0, 1.0)),
+                };
+                autoscale_toggle.set_active(false);
+                state_cell.borrow_mut().plot_settings.plot_range = PlotRange::Fixed((x_min, x_max_new), (y_min, y_max));
+                state_cell.borrow_mut().update_needed = true;
+            },
+            Err(_) => (),
+        }
+    }));
+
+    // y_min entry setup
+    let y_min_entry: Entry = builder.get_object("y_min_entry")
+        .expect("Failed to get y_min_entry");
+    let y_min_entry_buffer = y_min_entry.get_buffer();
+    y_min_entry.connect_activate(clone!(@strong y_min_entry_buffer as buf,
+                                        @strong autoscale_toggle,
+                                        @weak state_cell => move |_| {
+        let text = buf.get_text();
+        match text.parse::<f64>() {
+            Ok(y_min_new) => {
+                let ((x_min, x_max), (_y_min, y_max)) = match state_cell.borrow().plot_range_actual {
+                    PlotRange::Fixed(x_range,y_range) => (x_range, y_range),
+                    PlotRange::Auto => ((0.0, 1.0), (0.0, 1.0)),
+                };
+                autoscale_toggle.set_active(false);
+                state_cell.borrow_mut().plot_settings.plot_range = PlotRange::Fixed((x_min, x_max), (y_min_new, y_max));
+                state_cell.borrow_mut().update_needed = true;
+            },
+            Err(_) => (),
+        }
+    }));
+
+    // y_max entry setup
+    let y_max_entry: Entry = builder.get_object("y_max_entry")
+        .expect("Failed to get y_max_entry");
+    let y_max_entry_buffer = y_max_entry.get_buffer();
+    y_max_entry.connect_activate(clone!(@strong y_max_entry_buffer as buf,
+                                        @strong autoscale_toggle,
+                                        @weak state_cell => move |_| {
+        let text = buf.get_text();
+        match text.parse::<f64>() {
+            Ok(y_max_new) => {
+                let ((x_min, x_max), (y_min, _y_max)) = match state_cell.borrow().plot_range_actual {
+                    PlotRange::Fixed(x_range,y_range) => (x_range, y_range),
+                    PlotRange::Auto => ((0.0, 1.0), (0.0, 1.0)),
+                };
+                autoscale_toggle.set_active(false);
+                state_cell.borrow_mut().plot_settings.plot_range = PlotRange::Fixed((x_min, x_max), (y_min, y_max_new));
+                state_cell.borrow_mut().update_needed = true;
+            },
+            Err(_) => (),
+        }
+    }));
 
     // Custom update routine (called every 10 ms)
     let state_clone = state_cell.clone();
     let current_time_entry_buffer_clone = current_time_entry_buffer.clone();
+    let x_min_entry_buffer_clone = x_min_entry_buffer.clone();
+    let x_max_entry_buffer_clone = x_max_entry_buffer.clone();
+    let y_min_entry_buffer_clone = y_min_entry_buffer.clone();
+    let y_max_entry_buffer_clone = y_max_entry_buffer.clone();
     let plot_image_clone = plot_image.clone();
     timeout_add(10, move || {
         
@@ -173,12 +333,24 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
         }
 
         // Update plot if necessary
-        let update_needed = state_clone.borrow_mut().update_needed;
+        let update_needed = state_clone.borrow().update_needed;
         if update_needed {
             let svg_string = state_clone.borrow_mut().update_plot();
-            if let Some(s) = svg_string {
+            if let Some((s, r)) = svg_string {
+                // Update the plot itself
                 let buf = pixbuf_from_string(&s);
                 plot_image_clone.set_from_pixbuf(Some(&buf));
+
+                // Update range entries
+                let (x_min, x_max, y_min, y_max) = match r {
+                    PlotRange::Fixed((x_min, x_max), (y_min, y_max)) 
+                        => (x_min, x_max, y_min, y_max),
+                    PlotRange::Auto => (0.0, 1.0, 0.0, 1.0),
+                };
+                x_min_entry_buffer_clone.set_text(format!("{:.3}", x_min).as_str());
+                x_max_entry_buffer_clone.set_text(format!("{:.3}", x_max).as_str());
+                y_min_entry_buffer_clone.set_text(format!("{:.3}", y_min).as_str());
+                y_max_entry_buffer_clone.set_text(format!("{:.3}", y_max).as_str());
             }
 
         }

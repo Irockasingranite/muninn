@@ -2,12 +2,35 @@ use crate::data::{DataSlice, Point};
 
 use plotters::prelude::*;
 
-type Range = (f64, f64);
+pub type Range = (f64, f64);
 
-#[derive(Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum PlotRange {
     Auto,
     Fixed(Range, Range),
+}
+
+#[derive(Debug, Clone)]
+pub struct PlotSettings {
+    pub plot_range: PlotRange,
+    pub draw_lines: bool,
+    pub draw_points: bool,
+    pub use_color: bool,
+    pub use_logscale_x: bool,
+    pub use_logscale_y: bool,
+}
+
+impl PlotSettings {
+    pub fn new() -> PlotSettings {
+        PlotSettings {
+            plot_range: PlotRange::Auto,
+            draw_lines: true,
+            draw_points: true,
+            use_color: true,
+            use_logscale_x: false,
+            use_logscale_y: false,
+        }
+    }
 }
 
 fn point_in_area(p: &Point, x_range: &Range, y_range: &Range) -> bool {
@@ -133,18 +156,21 @@ fn truncate_line(line: &Vec<Point>, x_range: &Range, y_range: &Range) -> Vec<Vec
 }
 
 /// Take a vector of vectors of points, and plot them into an SVG file, returned as a String
-pub fn plot_data_slice_to_svg(data_slice: &DataSlice, plot_range: &PlotRange, image_size: &(u32, u32)) -> String
+pub fn plot_data_slice_to_svg(data_slice: &DataSlice, plot_settings: &PlotSettings, image_size: &(u32, u32)) -> (String, PlotRange)
 {
     let (_filenames, data) = data_slice;
 
     // Parameters
     let point_size = 2; // Point Size
-    let colors = vec![BLACK, BLUE, CYAN, GREEN, MAGENTA, RED, YELLOW];
+    let colors = match plot_settings.use_color {
+        true => vec![BLACK, BLUE, CYAN, GREEN, MAGENTA, RED, YELLOW],
+        false => vec![BLACK],
+    };
     let n_colors = colors.len();
-    let padding = 0.05;
+    let padding = 0.0;
 
     // Figure out drawing area
-    let ((xmin, xmax), (ymin, ymax)) = match *plot_range {
+    let ((xmin, xmax), (ymin, ymax)) = match plot_settings.plot_range {
         PlotRange::Fixed(x_range, y_range) => (x_range, y_range),
         PlotRange::Auto => {
             let mut xmaxs = Vec::new();
@@ -158,21 +184,41 @@ pub fn plot_data_slice_to_svg(data_slice: &DataSlice, plot_range: &PlotRange, im
                 ymins.push(series.iter().min_by(|(_,y1),(_,y2)| y1.partial_cmp(y2).unwrap()).unwrap().1);
             }
 
-            let xmin = *xmins.iter().min_by(|x, y| x.partial_cmp(y).unwrap()).unwrap();
-            let xmax = *xmaxs.iter().max_by(|x, y| x.partial_cmp(y).unwrap()).unwrap();
-            let ymin = *ymins.iter().min_by(|x, y| x.partial_cmp(y).unwrap()).unwrap();
-            let ymax = *ymaxs.iter().max_by(|x, y| x.partial_cmp(y).unwrap()).unwrap();
+            let mut xmin = *xmins.iter().min_by(|x, y| x.partial_cmp(y).unwrap()).unwrap();
+            let mut xmax = *xmaxs.iter().max_by(|x, y| x.partial_cmp(y).unwrap()).unwrap();
+            let mut ymin = *ymins.iter().min_by(|x, y| x.partial_cmp(y).unwrap()).unwrap();
+            let mut ymax = *ymaxs.iter().max_by(|x, y| x.partial_cmp(y).unwrap()).unwrap();
 
-            let dx = xmax - xmin;
-            let dy = ymax - ymin;
+            if plot_settings.use_logscale_x {
+                if xmin <= 0.0 {
+                    xmin = 1.0e-10;
+                }
+                let dx = xmax.log(10.0) - xmin.log(10.0);
+                xmin = 10.0_f64.powf(xmin.log(10.0) - padding * dx);
+                xmax = 10.0_f64.powf(xmax.log(10.0) + padding * dx);
+            } else {
+                let dx = xmax - xmin;
+                xmin = xmin - padding * dx;
+                xmax = xmax + padding * dx;
+            }
 
-            let xmin = xmin - padding * dx;
-            let xmax = xmax + padding * dx;
-            let ymin = ymin - padding * dy;
-            let ymax = ymax + padding * dy;
+            if plot_settings.use_logscale_y {
+                if ymin <= 0.0 {
+                    ymin = 1.0e-10;
+                }
+                let dy = ymax.log(10.0) - ymin.log(10.0);
+                ymin = 10.0_f64.powf(ymin.log(10.0) - padding * dy);
+                ymax = 10.0_f64.powf(ymax.log(10.0) + padding * dy);
+            } else {
+                let dy = ymax - ymin;
+                ymin = ymin - padding * dy;
+                ymax = ymax + padding * dy;
+            }
             ((xmin, xmax), (ymin, ymax))
         }
     };
+
+    let plotted_range = PlotRange::Fixed((xmin, xmax), (ymin, ymax));
 
     // Filter data to work around plotters bug
     // For point series: Remove any points outside the plotting area
@@ -180,56 +226,183 @@ pub fn plot_data_slice_to_svg(data_slice: &DataSlice, plot_range: &PlotRange, im
     //                  to coincide with plotting area border    
 
     let mut point_data: Vec<Vec<Point>> = Vec::new();
-    for line in data {
-        let filtered_line: Vec<Point> = line.iter().filter(|(x,y)| {
-            *x >= xmin && *x <= xmax && *y >= ymin && *y <= ymax
-        }).map(|p| *p).collect();
-        point_data.push(filtered_line);
+    if plot_settings.draw_points {
+        for line in data {
+            let filtered_line: Vec<Point> = line.iter().filter(|(x,y)| {
+                *x >= xmin && *x <= xmax && *y >= ymin && *y <= ymax
+            }).map(|p| *p).collect();
+            point_data.push(filtered_line);
+        }
     }
+
     let mut line_data: Vec<Vec<Vec<Point>>> = Vec::new();
-    for line in data.iter() {
-        let filtered_line = truncate_line(&line, &(xmin, xmax), &(ymin, ymax));
-        // let filtered_line = vec![line.clone()];
-        line_data.push(filtered_line);
+    if plot_settings.draw_lines {
+        for line in data.iter() {
+            let filtered_line = truncate_line(&line, &(xmin, xmax), &(ymin, ymax));
+            line_data.push(filtered_line);
+        }
     }
 
-    // Prepare empty plot
-    let mut svg_string = String::new();
-    let (width, height) = *image_size;
+    let x_range = xmin..xmax;
+    let y_range = ymin..ymax;
+    let logscale_settings = (plot_settings.use_logscale_x, plot_settings.use_logscale_y);
+
+    let mut svg_string = String::new();    
     {
-        let root = SVGBackend::with_string(&mut svg_string, (width, height)).into_drawing_area();
+        let root = SVGBackend::with_string(&mut svg_string, *image_size).into_drawing_area();
         root.fill(&WHITE).expect("Failed to fill canvas");
-        let mut chart = ChartBuilder::on(&root)
-            .x_label_area_size(20)
-            .y_label_area_size(50)
-            .build_ranged(xmin..xmax, ymin..ymax)
-            .expect("Failed to build chart");
 
-        chart.configure_mesh().draw().expect("Failed to draw mesh");
+        /* Ugly code duplication, but I can't figure out how to work around not being able to make
+           trait objects out of plotters::coord::AsRangedCoord... */
+        match logscale_settings {
+            (false, false) => {
+                let mut chart = ChartBuilder::on(&root)
+                                .x_label_area_size(20)
+                                .y_label_area_size(50)
+                                .build_ranged(x_range, y_range)
+                                .expect("Failed to build chart");
 
-        // plot each point vector seperately
-        // line:
-        for (i, line_segments) in line_data.iter().enumerate() {
-            let color = &colors[i%n_colors];
-            for segment in line_segments {
-                chart.draw_series(LineSeries::new(segment.clone(), color))
-                    .expect("Failed to draw line");
-            }
-        }
-        // points:
-        for (i, points) in point_data.iter().enumerate() {
-            let color = &colors[i%n_colors];
-            chart.draw_series(PointSeries::of_element(
-                points.clone(),
-                point_size,
-                color,
-                &|coord, size, style| {
-                    return EmptyElement::at(coord)
-                        + Circle::new((0,0), size, style.filled())
+                chart.configure_mesh().draw().expect("Failed to draw mesh");
+
+                // plot each point vector seperately
+                // line:
+                if plot_settings.draw_lines {
+                    for (i, line_segments) in line_data.iter().enumerate() {
+                        let color = &colors[i%n_colors];
+                        for segment in line_segments {
+                            chart.draw_series(LineSeries::new(segment.clone(), color))
+                                .expect("Failed to draw line");
+                        }
+                    }
                 }
-                )).expect("Failed to draw points");
+                // points:
+                if plot_settings.draw_points {  
+                    for (i, points) in point_data.iter().enumerate() {
+                        let color = &colors[i%n_colors];
+                        chart.draw_series(PointSeries::of_element(
+                            points.clone(),
+                            point_size,
+                            color,
+                            &|coord, size, style| {
+                                return EmptyElement::at(coord)
+                                    + Circle::new((0,0), size, style.filled())
+                            }
+                            )).expect("Failed to draw points");
+                    }
+                }
+            },
+            (false, true) => {
+                let mut chart = ChartBuilder::on(&root)
+                                .x_label_area_size(20)
+                                .y_label_area_size(50)
+                                .build_ranged(x_range, LogRange(y_range))
+                                .expect("Failed to build chart");
+
+                chart.configure_mesh().draw().expect("Failed to draw mesh");
+
+                // plot each point vector seperately
+                // line:
+                if plot_settings.draw_lines {
+                    for (i, line_segments) in line_data.iter().enumerate() {
+                        let color = &colors[i%n_colors];
+                        for segment in line_segments {
+                            chart.draw_series(LineSeries::new(segment.clone(), color))
+                                .expect("Failed to draw line");
+                        }
+                    }
+                }
+                // points:
+                if plot_settings.draw_points {  
+                    for (i, points) in point_data.iter().enumerate() {
+                        let color = &colors[i%n_colors];
+                        chart.draw_series(PointSeries::of_element(
+                            points.clone(),
+                            point_size,
+                            color,
+                            &|coord, size, style| {
+                                return EmptyElement::at(coord)
+                                    + Circle::new((0,0), size, style.filled())
+                            }
+                            )).expect("Failed to draw points");
+                    }
+                }                
+            },
+            (true, false) => {
+                let mut chart = ChartBuilder::on(&root)
+                                .x_label_area_size(20)
+                                .y_label_area_size(50)
+                                .build_ranged(LogRange(x_range), y_range)
+                                .expect("Failed to build chart");
+
+                chart.configure_mesh().draw().expect("Failed to draw mesh");
+
+                // plot each point vector seperately
+                // line:
+                if plot_settings.draw_lines {
+                    for (i, line_segments) in line_data.iter().enumerate() {
+                        let color = &colors[i%n_colors];
+                        for segment in line_segments {
+                            chart.draw_series(LineSeries::new(segment.clone(), color))
+                                .expect("Failed to draw line");
+                        }
+                    }
+                }
+                // points:
+                if plot_settings.draw_points {  
+                    for (i, points) in point_data.iter().enumerate() {
+                        let color = &colors[i%n_colors];
+                        chart.draw_series(PointSeries::of_element(
+                            points.clone(),
+                            point_size,
+                            color,
+                            &|coord, size, style| {
+                                return EmptyElement::at(coord)
+                                    + Circle::new((0,0), size, style.filled())
+                            }
+                            )).expect("Failed to draw points");
+                    }
+                }
+            },
+            (true, true) => {
+                let mut chart = ChartBuilder::on(&root)
+                                .x_label_area_size(20)
+                                .y_label_area_size(50)
+                                .build_ranged(LogRange(x_range), LogRange(y_range))
+                                .expect("Failed to build chart");
+
+                chart.configure_mesh().draw().expect("Failed to draw mesh");
+
+                // plot each point vector seperately
+                // line:
+                if plot_settings.draw_lines {
+                    for (i, line_segments) in line_data.iter().enumerate() {
+                        let color = &colors[i%n_colors];
+                        for segment in line_segments {
+                            chart.draw_series(LineSeries::new(segment.clone(), color))
+                                .expect("Failed to draw line");
+                        }
+                    }
+                }
+                // points:
+                if plot_settings.draw_points {  
+                    for (i, points) in point_data.iter().enumerate() {
+                        let color = &colors[i%n_colors];
+                        chart.draw_series(PointSeries::of_element(
+                            points.clone(),
+                            point_size,
+                            color,
+                            &|coord, size, style| {
+                                return EmptyElement::at(coord)
+                                    + Circle::new((0,0), size, style.filled())
+                            }
+                            )).expect("Failed to draw points");
+                    }
+                }
+            },
         }
-    }    
-    // Return "file"
-    svg_string
+
+    }
+
+    // Return "file" and actual range
+    (svg_string, plotted_range)
 }

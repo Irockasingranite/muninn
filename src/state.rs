@@ -1,5 +1,5 @@
 use crate::data::{Data, DataSlice};
-use crate::plotting::{PlotRange};
+use crate::plotting::{PlotRange, PlotSettings};
 use std::time::{Instant};
 
 #[derive(Clone)]
@@ -15,7 +15,9 @@ pub struct State {
     pub is_playing: bool, // Whether the plot is being animated
     last_step_made_at: Instant, // time when last frame was rendered
     pub update_needed: bool, // whether the current image needs to be updated
-    pub plot_range: PlotRange,
+    // pub plot_range_setting: PlotRange,
+    pub plot_settings: PlotSettings,
+    pub plot_range_actual: PlotRange,
     pub plot_image_size: (u32, u32),
 }
 
@@ -33,8 +35,9 @@ impl State {
             is_playing: false,
             last_step_made_at: Instant::now(),
             update_needed: true,
-            // plot_range: PlotRange::Fixed((0.0,20.0),(-0.1,0.1)),
-            plot_range: PlotRange::Auto,
+            // plot_range_setting: PlotRange::Auto,
+            plot_settings: PlotSettings::new(),
+            plot_range_actual: PlotRange::Auto,
             plot_image_size: (600,400),
         }
     }
@@ -159,23 +162,26 @@ impl State {
         self.go_to_step(target_step)
     }
 
-    pub fn update_plot(&mut self) -> Option<String> {
+    pub fn update_plot(&mut self) -> Option<(String, PlotRange)> {
         use crate::plotting::{plot_data_slice_to_svg};
         if let Some(d) = &self.loaded_data {
-            let svg_string: String = match &self.current_slice {
+            let (svg_string, range): (String, PlotRange) = match &self.current_slice {
                 None => {
                     let s = d.at_time(self.current_time);
-                    let string = plot_data_slice_to_svg(&s, &self.plot_range, &self.plot_image_size);
+                    let (string, range) = plot_data_slice_to_svg(&s, &self.plot_settings, &self.plot_image_size);
                     self.current_slice = Some(s);
                     self.update_needed = false;
-                    string
+                    self.plot_range_actual = range;
+                    (string, range)
                 },
                 Some(s) => {
                     self.update_needed = false;
-                    plot_data_slice_to_svg(&s, &self.plot_range, &self.plot_image_size)
+                    let (string, range) = plot_data_slice_to_svg(&s, &self.plot_settings, &self.plot_image_size);
+                    self.plot_range_actual = range;
+                    (string, range)
                 },
             };
-            return Some(svg_string)
+            return Some((svg_string, range));
         }
         None
     }
