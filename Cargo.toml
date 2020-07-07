@@ -4,7 +4,7 @@ version = "0.2.0"
 authors = ["Sarah Renkhoff <sarah.renkhoff@gmail.com>"]
 edition = "2018"
 
-[profive.release]
+[profile.release]
 opt-level = 3
 
 [dependencies]
