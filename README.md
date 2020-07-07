@@ -13,19 +13,22 @@ Ubuntu:
 apt install libgtk-3-dev
 ```
 
-Then clone the repository and build the project using cargo:
+Then clone the repository and build + install the project using cargo:
 ```
 git clone https://git.tpi.uni-jena.de/srenkhoff/muninn
 cd muninn
-cargo build --release
-```
-Cargo will place the executable in `target/release`.
-
-To add muninn to your `$PATH` for easy access, either manually move or symlink it to e.g. `/usr/local/bin`, or use
-```
 cargo install --path .
 ```
-to have cargo take care of it (by default it places the executable in `~/.cargo/bin`, which rustup added to your `$PATH`).
+
+This will place the executable in `~/.cargo/bin`, which rustup should have added to your `$PATH`.
+
+For a manual install in a location of your choice, you can run
+```
+cargo build --release
+```
+instead.
+Cargo will place the executable in `target/release`.
+You can move or symlink it to wherever you like, e.g. `/usr/local/bin`.
 
 ## Mac OSX
 (*Tested on OSX 10.15.4*)
@@ -45,9 +48,9 @@ Then clone the repository by
 ```
 git clone https://git.tpi.uni-jena.de/srenkhoff/muninn ~/muninn
 ```
-and compile Muninn with
+and compile and install Muninn with
 ```
 cd ~/muninn
-cargo build --release
+cargo install --path .
 ```
-This should create an executable in target/release.
+This should create an executable in `~/.cargo/bin`.
