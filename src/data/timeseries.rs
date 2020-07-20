@@ -39,10 +39,10 @@ impl TimeSeries {
             else  {
                 if let Some(dataline) = data_lines.last_mut() {
                     let mut words = line.trim().split(" ");
-                    let x = words.next().unwrap().parse::<f64>().unwrap();
-                    let y = words.next().unwrap().parse::<f64>().unwrap();
-                    let point = (x, y);
-                    dataline.push(point);
+                    if let (Ok(x), Ok(y)) = (words.next().unwrap().parse::<f64>(),
+                                                 words.next().unwrap().parse::<f64>()) {
+                        dataline.push((x,y));
+                    }
                 }
             }
         }       
