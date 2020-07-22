@@ -28,7 +28,7 @@ impl TimeSeries {
             if line.is_empty() {
                 continue;
             }
-            if line.starts_with("\"") {
+            if line.starts_with('\"') {
                 if line.starts_with("\"Time = ") {
                     let time_str = line.get(8..).unwrap();
                     let time = time_str.parse::<f64>().unwrap();
@@ -36,13 +36,11 @@ impl TimeSeries {
                     data_lines.push(DataLine::new());
                 }
             }
-            else  {
-                if let Some(dataline) = data_lines.last_mut() {
-                    let mut words = line.trim().split(" ");
-                    if let (Ok(x), Ok(y)) = (words.next().unwrap().parse::<f64>(),
-                                                 words.next().unwrap().parse::<f64>()) {
-                        dataline.push((x,y));
-                    }
+            else if let Some(dataline) = data_lines.last_mut() {
+                let mut words = line.trim().split(' ');
+                if let (Ok(x), Ok(y)) = (words.next().unwrap().parse::<f64>(),
+                                             words.next().unwrap().parse::<f64>()) {
+                    dataline.push((x,y));
                 }
             }
         }       
@@ -52,8 +50,8 @@ impl TimeSeries {
 
         let series = TimeSeries{
             times,
-            start_time: start_time,
-            end_time: end_time,
+            start_time,
+            end_time,
             data_lines,
         };
 
@@ -64,7 +62,7 @@ impl TimeSeries {
         if time > self.end_time || time < self.start_time {
             None
         } else {
-            let index_option = self.times.iter().rposition(|t| time == *t);
+            let index_option = self.times.iter().rposition(|t| (time - *t).abs() < f64::EPSILON);
             if let Some(index) = index_option {
                 Some(&self.data_lines[index as usize])
             } else {

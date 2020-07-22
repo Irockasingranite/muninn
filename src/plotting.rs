@@ -83,12 +83,12 @@ fn truncate_line_segment(line_segment: &(Point, Point), x_range: &Range, y_range
         return (x2 + scale_factor * (x1 - x2),
                 y2 + scale_factor * (y1 - y2));
     }
-    return (x2, y2);
+    (x2, y2)
 }
 
 /// Takes a line of data points and returns a vector of lines that lie within the specified area
-fn truncate_line(line: &Vec<Point>, x_range: &Range, y_range: &Range) -> Vec<Vec<Point>> {
-    if line.len() == 0 {
+fn truncate_line(line: &[Point], x_range: &Range, y_range: &Range) -> Vec<Vec<Point>> {
+    if line.is_empty() {
         return Vec::new();
     }
 
@@ -106,7 +106,7 @@ fn truncate_line(line: &Vec<Point>, x_range: &Range, y_range: &Range) -> Vec<Vec
     // If no splits were detected, either all or none of the line is in the area
     if n_splits == 0 {
         if point_in_area(&line[0], x_range, y_range) {
-            return vec![line.clone()];
+            return vec![line.to_owned()];
         } else {
             return Vec::new();
         }
@@ -198,8 +198,8 @@ pub fn plot_data_slice_to_svg(data_slice: &DataSlice, plot_settings: &PlotSettin
                 xmax = 10.0_f64.powf(xmax.log(10.0) + padding * dx);
             } else {
                 let dx = xmax - xmin;
-                xmin = xmin - padding * dx;
-                xmax = xmax + padding * dx;
+                xmin -= padding * dx;
+                xmax += padding * dx;
             }
 
             if plot_settings.use_logscale_y {
@@ -211,8 +211,8 @@ pub fn plot_data_slice_to_svg(data_slice: &DataSlice, plot_settings: &PlotSettin
                 ymax = 10.0_f64.powf(ymax.log(10.0) + padding * dy);
             } else {
                 let dy = ymax - ymin;
-                ymin = ymin - padding * dy;
-                ymax = ymax + padding * dy;
+                ymin -= padding * dy;
+                ymax += padding * dy;
             }
             ((xmin, xmax), (ymin, ymax))
         }
@@ -230,7 +230,7 @@ pub fn plot_data_slice_to_svg(data_slice: &DataSlice, plot_settings: &PlotSettin
         for line in data {
             let filtered_line: Vec<Point> = line.iter().filter(|(x,y)| {
                 *x >= xmin && *x <= xmax && *y >= ymin && *y <= ymax
-            }).map(|p| *p).collect();
+            }).copied().collect();
             point_data.push(filtered_line);
         }
     }
@@ -284,7 +284,7 @@ pub fn plot_data_slice_to_svg(data_slice: &DataSlice, plot_settings: &PlotSettin
                             point_size,
                             color,
                             &|coord, size, style| {
-                                return EmptyElement::at(coord)
+                                EmptyElement::at(coord)
                                     + Circle::new((0,0), size, style.filled())
                             }
                             )).expect("Failed to draw points");
@@ -320,7 +320,7 @@ pub fn plot_data_slice_to_svg(data_slice: &DataSlice, plot_settings: &PlotSettin
                             point_size,
                             color,
                             &|coord, size, style| {
-                                return EmptyElement::at(coord)
+                                EmptyElement::at(coord)
                                     + Circle::new((0,0), size, style.filled())
                             }
                             )).expect("Failed to draw points");
@@ -356,7 +356,7 @@ pub fn plot_data_slice_to_svg(data_slice: &DataSlice, plot_settings: &PlotSettin
                             point_size,
                             color,
                             &|coord, size, style| {
-                                return EmptyElement::at(coord)
+                                EmptyElement::at(coord)
                                     + Circle::new((0,0), size, style.filled())
                             }
                             )).expect("Failed to draw points");
@@ -392,7 +392,7 @@ pub fn plot_data_slice_to_svg(data_slice: &DataSlice, plot_settings: &PlotSettin
                             point_size,
                             color,
                             &|coord, size, style| {
-                                return EmptyElement::at(coord)
+                                EmptyElement::at(coord)
                                     + Circle::new((0,0), size, style.filled())
                             }
                             )).expect("Failed to draw points");

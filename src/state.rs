@@ -125,9 +125,9 @@ impl State {
             self.current_slice = Some(d.at_time(target_time));
             self.current_time = target_time;
             self.update_needed = true;
-            return Some(target_time);
+            Some(target_time)
         } else {
-            return None;
+            None
         }
     }
 

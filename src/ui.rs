@@ -34,7 +34,7 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
     plot_image_event_box.connect_scroll_event(move |_, event| {
         let (_x, _y) = event.get_position();
         // println!("scroll at ({}, {})!", x, y);
-        return Inhibit(false);
+        Inhibit(false)
     });
     plot_image.connect_size_allocate(clone!(@weak state_cell => move |_, allocation| {
         let width = allocation.width as u32;
@@ -63,7 +63,7 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
         if state_cell.borrow().loaded_data.is_none() {
             return;
         }
-        let ref mut is_playing = state_cell.borrow_mut().is_playing;
+        let is_playing = &mut state_cell.borrow_mut().is_playing;
         match *is_playing {
             true => {
                 *is_playing = false;
@@ -84,14 +84,11 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
                                                @strong current_time_entry_buffer as buf
                                                => move |_| {
         let text = buf.get_text();
-        match text.parse::<f64>() {
-            Ok(t) => {
-                let new_time = state_cell.borrow_mut().jump_to_time(t);
-                if let Some(t) = new_time {
-                    buf.set_text(format!("{:.3}", t).as_str());
-                }
-            },
-            Err(_) => (),
+        if let Ok(t) = text.parse::<f64>() {
+            let new_time = state_cell.borrow_mut().jump_to_time(t);
+            if let Some(t) = new_time {
+                buf.set_text(format!("{:.3}", t).as_str());
+            }
         }
     }));
     let time = state_cell.borrow().current_time;
@@ -234,17 +231,14 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
                                         @strong autoscale_toggle,
                                         @weak state_cell => move |_| {
         let text = buf.get_text();
-        match text.parse::<f64>() {
-            Ok(x_min_new) => {
-                let ((_x_min, x_max), (y_min, y_max)) = match state_cell.borrow().plot_range_actual {
-                    PlotRange::Fixed(x_range,y_range) => (x_range, y_range),
-                    PlotRange::Auto => ((0.0, 1.0), (0.0, 1.0)),
-                };
-                autoscale_toggle.set_active(false);
-                state_cell.borrow_mut().plot_settings.plot_range = PlotRange::Fixed((x_min_new, x_max), (y_min, y_max));
-                state_cell.borrow_mut().update_needed = true;
-            },
-            Err(_) => (),
+        if let Ok(x_min_new) = text.parse::<f64>() {
+            let ((_x_min, x_max), (y_min, y_max)) = match state_cell.borrow().plot_range_actual {
+                PlotRange::Fixed(x_range,y_range) => (x_range, y_range),
+                PlotRange::Auto => ((0.0, 1.0), (0.0, 1.0)),
+            };
+            autoscale_toggle.set_active(false);
+            state_cell.borrow_mut().plot_settings.plot_range = PlotRange::Fixed((x_min_new, x_max), (y_min, y_max));
+            state_cell.borrow_mut().update_needed = true;
         }
     }));
 
@@ -256,17 +250,14 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
                                         @strong autoscale_toggle,
                                         @weak state_cell => move |_| {
         let text = buf.get_text();
-        match text.parse::<f64>() {
-            Ok(x_max_new) => {
-                let ((x_min, _x_max), (y_min, y_max)) = match state_cell.borrow().plot_range_actual {
-                    PlotRange::Fixed(x_range,y_range) => (x_range, y_range),
-                    PlotRange::Auto => ((0.0, 1.0), (0.0, 1.0)),
-                };
-                autoscale_toggle.set_active(false);
-                state_cell.borrow_mut().plot_settings.plot_range = PlotRange::Fixed((x_min, x_max_new), (y_min, y_max));
-                state_cell.borrow_mut().update_needed = true;
-            },
-            Err(_) => (),
+        if let Ok(x_max_new) = text.parse::<f64>() {
+            let ((x_min, _x_max), (y_min, y_max)) = match state_cell.borrow().plot_range_actual {
+                PlotRange::Fixed(x_range,y_range) => (x_range, y_range),
+                PlotRange::Auto => ((0.0, 1.0), (0.0, 1.0)),
+            };
+            autoscale_toggle.set_active(false);
+            state_cell.borrow_mut().plot_settings.plot_range = PlotRange::Fixed((x_min, x_max_new), (y_min, y_max));
+            state_cell.borrow_mut().update_needed = true;
         }
     }));
 
@@ -278,17 +269,14 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
                                         @strong autoscale_toggle,
                                         @weak state_cell => move |_| {
         let text = buf.get_text();
-        match text.parse::<f64>() {
-            Ok(y_min_new) => {
-                let ((x_min, x_max), (_y_min, y_max)) = match state_cell.borrow().plot_range_actual {
-                    PlotRange::Fixed(x_range,y_range) => (x_range, y_range),
-                    PlotRange::Auto => ((0.0, 1.0), (0.0, 1.0)),
-                };
-                autoscale_toggle.set_active(false);
-                state_cell.borrow_mut().plot_settings.plot_range = PlotRange::Fixed((x_min, x_max), (y_min_new, y_max));
-                state_cell.borrow_mut().update_needed = true;
-            },
-            Err(_) => (),
+        if let Ok(y_min_new) = text.parse::<f64>() {
+            let ((x_min, x_max), (_y_min, y_max)) = match state_cell.borrow().plot_range_actual {
+                PlotRange::Fixed(x_range,y_range) => (x_range, y_range),
+                PlotRange::Auto => ((0.0, 1.0), (0.0, 1.0)),
+            };
+            autoscale_toggle.set_active(false);
+            state_cell.borrow_mut().plot_settings.plot_range = PlotRange::Fixed((x_min, x_max), (y_min_new, y_max));
+            state_cell.borrow_mut().update_needed = true;
         }
     }));
 
@@ -300,28 +288,25 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
                                         @strong autoscale_toggle,
                                         @weak state_cell => move |_| {
         let text = buf.get_text();
-        match text.parse::<f64>() {
-            Ok(y_max_new) => {
-                let ((x_min, x_max), (y_min, _y_max)) = match state_cell.borrow().plot_range_actual {
-                    PlotRange::Fixed(x_range,y_range) => (x_range, y_range),
-                    PlotRange::Auto => ((0.0, 1.0), (0.0, 1.0)),
-                };
-                autoscale_toggle.set_active(false);
-                state_cell.borrow_mut().plot_settings.plot_range = PlotRange::Fixed((x_min, x_max), (y_min, y_max_new));
-                state_cell.borrow_mut().update_needed = true;
-            },
-            Err(_) => (),
+        if let Ok(y_max_new) = text.parse::<f64>() {
+            let ((x_min, x_max), (y_min, _y_max)) = match state_cell.borrow().plot_range_actual {
+                PlotRange::Fixed(x_range,y_range) => (x_range, y_range),
+                PlotRange::Auto => ((0.0, 1.0), (0.0, 1.0)),
+            };
+            autoscale_toggle.set_active(false);
+            state_cell.borrow_mut().plot_settings.plot_range = PlotRange::Fixed((x_min, x_max), (y_min, y_max_new));
+            state_cell.borrow_mut().update_needed = true;
         }
     }));
 
     // Custom update routine (called every 10 ms)
-    let state_clone = state_cell.clone();
-    let current_time_entry_buffer_clone = current_time_entry_buffer.clone();
-    let x_min_entry_buffer_clone = x_min_entry_buffer.clone();
-    let x_max_entry_buffer_clone = x_max_entry_buffer.clone();
-    let y_min_entry_buffer_clone = y_min_entry_buffer.clone();
-    let y_max_entry_buffer_clone = y_max_entry_buffer.clone();
-    let plot_image_clone = plot_image.clone();
+    let state_clone = state_cell;
+    let current_time_entry_buffer_clone = current_time_entry_buffer;
+    let x_min_entry_buffer_clone = x_min_entry_buffer;
+    let x_max_entry_buffer_clone = x_max_entry_buffer;
+    let y_min_entry_buffer_clone = y_min_entry_buffer;
+    let y_max_entry_buffer_clone = y_max_entry_buffer;
+    let plot_image_clone = plot_image;
     timeout_add(10, move || {
         
         // Animation of state
@@ -355,7 +340,7 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
 
         }
 
-        return Continue(true);
+        Continue(true)
     });
 
     window.show_all();

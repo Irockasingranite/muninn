@@ -42,10 +42,10 @@ impl Data {
         data.start_time = start_time;
         data.end_time = end_time;
 
-        if data.timeseries.len() == 0 {
-            return None;
+        if data.timeseries.is_empty() {
+            None
         } else {
-            return Some(data);
+            Some(data)
         }
     }
 
