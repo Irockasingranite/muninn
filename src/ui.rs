@@ -1,10 +1,12 @@
-use gtk::{Application, ApplicationWindow, Builder, Button, Entry, EventBox, Image, SpinButton, ToggleButton};
+use gtk::{Application, ApplicationWindow, Builder, Button, Entry, EventBox, FileChooserDialog, Image, MenuItem, SpinButton, ToggleButton};
+use gtk::ResponseType;
 use gtk::prelude::*;
 use std::rc::{Rc};
 use std::cell::{RefCell};
 use glib::{clone};
 
 use crate::state::{State};
+use crate::data::{Data};
 use crate::plotting::{PlotRange};
 
 use gdk_pixbuf::{Pixbuf, PixbufLoader, PixbufLoaderExt};
@@ -298,6 +300,28 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
             state_cell.borrow_mut().update_needed = true;
         }
     }));
+
+    // file_chooser_dialog setup
+    let file_chooser_dialog: FileChooserDialog = builder.get_object("file_chooser_dialog")
+        .expect("Failed to get file_chooser_dialog");
+    file_chooser_dialog.add_button("Cancel", ResponseType::Cancel);
+    file_chooser_dialog.add_button("Open", ResponseType::Accept);
+    let open_menu_item: MenuItem = builder.get_object("open_menu_item")
+        .expect("Failed to get open_menu_item");
+    file_chooser_dialog.connect_response(clone!(@weak state_cell => move |d,r| {
+        if let ResponseType::Accept = r {
+            let filenames = d.get_filenames();
+            let filenames: Vec<String> = filenames.iter().map(|pb| pb.as_path().display().to_string()).collect();
+            println!("Loading data from files: {:?}", filenames);
+            if let Some(data) = Data::from_files(filenames) {
+                state_cell.borrow_mut().load_data(data);
+            }
+        }
+    }));
+    open_menu_item.connect_activate(move |_| {
+        file_chooser_dialog.run();
+        file_chooser_dialog.hide();
+    });
 
     // Custom update routine (called every 10 ms)
     let state_clone = state_cell;
