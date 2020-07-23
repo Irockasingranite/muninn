@@ -1,4 +1,4 @@
-use gtk::{Application, ApplicationWindow, Builder, Button, Entry, EventBox, FileChooserDialog, Image, MenuItem, SpinButton, ToggleButton};
+use gtk::{Application, ApplicationWindow, Builder, Button, Entry, EventBox, FileChooserDialog, Image, MenuItem, SpinButton, ToggleButton, Viewport};
 use gtk::ResponseType;
 use gtk::prelude::*;
 use std::rc::{Rc};
@@ -38,14 +38,15 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
         // println!("scroll at ({}, {})!", x, y);
         Inhibit(false)
     });
-    plot_image.connect_size_allocate(clone!(@weak state_cell => move |_, allocation| {
+    let plot_image_viewport: Viewport = builder.get_object("plot_image_viewport")
+        .expect("Failed to get plot_image_viewport");
+    plot_image_viewport.connect_size_allocate(clone!(@weak state_cell => move |_, allocation| {
         let width = allocation.width as u32;
         let height = allocation.height as u32;
-        let (current_width, curren_height) = state_cell.borrow().plot_image_size;
-        if (width, height) != (current_width, curren_height) {
+        let (current_width, current_height) = state_cell.borrow().plot_image_size;
+        if (width, height) != (current_width, current_height) {
             state_cell.borrow_mut().plot_image_size = (width, height);
             state_cell.borrow_mut().update_needed = true;
-            // println!("Setting image to ({}, {})", width, height);
         }
     }));
 
