@@ -39,6 +39,10 @@ impl Data {
             }
         }
 
+        if data.timeseries.is_empty() {
+            return None;
+        }
+
         data.start_time = start_time;
         data.end_time = end_time;
 

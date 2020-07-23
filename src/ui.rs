@@ -312,7 +312,6 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
         if let ResponseType::Accept = r {
             let filenames = d.get_filenames();
             let filenames: Vec<String> = filenames.iter().map(|pb| pb.as_path().display().to_string()).collect();
-            println!("Loading data from files: {:?}", filenames);
             if let Some(data) = Data::from_files(filenames) {
                 state_cell.borrow_mut().load_data(data);
             }

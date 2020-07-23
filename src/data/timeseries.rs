@@ -1,6 +1,22 @@
+use std::error::Error;
+use std::fmt;
+
 pub type Point = (f64, f64);
 pub type DataLine = Vec<Point>;
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+
+#[derive(Debug)]
+pub struct DatafileReadError {
+    filename: String,
+}
+
+impl fmt::Display for DatafileReadError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Not a valid datafile: {}", self.filename)
+    }
+}
+
+impl Error for DatafileReadError {}
 
 #[derive(Debug, Clone)]
 pub struct TimeSeries {
@@ -44,6 +60,10 @@ impl TimeSeries {
                 }
             }
         }       
+
+        if times.is_empty() {
+            return Err(Box::new(DatafileReadError{filename: filename.to_string()}));
+        }
 
         let start_time = *times.iter().min_by(|&x, &y| x.partial_cmp(y).unwrap()).unwrap();
         let end_time = *times.iter().max_by(|x, y| x.partial_cmp(y).unwrap()).unwrap();
