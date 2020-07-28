@@ -1,4 +1,4 @@
-use gtk::{Application, ApplicationWindow, Builder, Button, Entry, EventBox, FileChooserDialog, Image, MenuItem, SpinButton, ToggleButton, Viewport};
+use gtk::{Application, ApplicationWindow, Builder, Button, Entry, EventBox, FileChooserDialog, Image, SpinButton, ToggleButton, Viewport};
 use gtk::ResponseType;
 use gtk::prelude::*;
 use std::rc::{Rc};
@@ -307,8 +307,6 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
         .expect("Failed to get file_chooser_dialog");
     file_chooser_dialog.add_button("Cancel", ResponseType::Cancel);
     file_chooser_dialog.add_button("Open", ResponseType::Accept);
-    let open_menu_item: MenuItem = builder.get_object("open_menu_item")
-        .expect("Failed to get open_menu_item");
     file_chooser_dialog.connect_response(clone!(@weak state_cell => move |d,r| {
         if let ResponseType::Accept = r {
             let filenames = d.get_filenames();
@@ -318,7 +316,9 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
             }
         }
     }));
-    open_menu_item.connect_activate(move |_| {
+    let load_button: Button = builder.get_object("load_button")
+        .expect("Failed to get load_button");
+    load_button.connect_clicked(move |_| {
         file_chooser_dialog.run();
         file_chooser_dialog.hide();
     });
