@@ -1,7 +1,7 @@
 # Installation
 
 ## Linux
-To compile muninn yourself, install [rustup](rustup.rs).
+To compile muninn yourself, install [rustup](https://rustup.rs/).
 You may also need to install gtk3 using your favourite package manager, e.g.:
 
 Arch Linux:
