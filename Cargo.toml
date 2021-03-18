@@ -15,7 +15,7 @@ gdk = "0.12.1"
 
 [dependencies.gtk]
 version = "0.8.1"
-features = ["v3_24"]
+features = ["v3_22"]
 
 [dependencies.gio]
 version = ""
