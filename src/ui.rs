@@ -302,12 +302,13 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
         }
     }));
 
-    // file_chooser_dialog setup
-    let file_chooser_dialog: FileChooserDialog = builder.get_object("file_chooser_dialog")
-        .expect("Failed to get file_chooser_dialog");
-    file_chooser_dialog.add_button("Cancel", ResponseType::Cancel);
-    file_chooser_dialog.add_button("Open", ResponseType::Accept);
-    file_chooser_dialog.connect_response(clone!(@weak state_cell => move |d,r| {
+    // load_file_chooser_dialog setup
+    let load_file_chooser_dialog: FileChooserDialog = builder.get_object("load_file_chooser_dialog")
+        .expect("Failed to get load_file_chooser_dialog");
+    load_file_chooser_dialog.set_action(gtk::FileChooserAction::Open);
+    load_file_chooser_dialog.add_button("Cancel", ResponseType::Cancel);
+    load_file_chooser_dialog.add_button("Open", ResponseType::Accept);
+    load_file_chooser_dialog.connect_response(clone!(@weak state_cell => move |d,r| {
         if let ResponseType::Accept = r {
             let filenames = d.get_filenames();
             let filenames: Vec<String> = filenames.iter().map(|pb| pb.as_path().display().to_string()).collect();
@@ -316,11 +317,38 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
             }
         }
     }));
+
+    // Load button setup
     let load_button: Button = builder.get_object("load_button")
         .expect("Failed to get load_button");
     load_button.connect_clicked(move |_| {
-        file_chooser_dialog.run();
-        file_chooser_dialog.hide();
+        load_file_chooser_dialog.run();
+        load_file_chooser_dialog.hide();
+    });
+
+    // save_file_chooser_dialog setup
+    let save_file_chooser_dialog: FileChooserDialog = builder.get_object("save_file_chooser_dialog")
+        .expect("Failed to get save_file_chooser_dialog");
+        save_file_chooser_dialog.set_action(gtk::FileChooserAction::Save);
+    save_file_chooser_dialog.add_button("Cancel", ResponseType::Cancel);
+    save_file_chooser_dialog.add_button("Save", ResponseType::Accept);
+    save_file_chooser_dialog.connect_response(clone!(@weak state_cell => move |d, r| {
+        if let ResponseType::Accept = r {
+            if let Some(filename) = d.get_filename() {
+                let filename = filename.as_path().display().to_string();     
+                if let Some(svg_string) = state_cell.borrow().plot_image_string.clone() {
+                    std::fs::write(filename, svg_string).expect("Failed to write file");
+                }
+            }
+        }
+    }));
+
+    // Save button setup
+    let save_plot_button: Button = builder.get_object("save_plot_button")
+        .expect("Failed to get save_button");
+    save_plot_button.connect_clicked(move |_| {
+        save_file_chooser_dialog.run();
+        save_file_chooser_dialog.hide(); 
     });
 
     // Custom update routine (called every 10 ms)

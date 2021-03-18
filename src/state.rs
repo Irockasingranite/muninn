@@ -19,6 +19,7 @@ pub struct State {
     pub plot_settings: PlotSettings,
     pub plot_range_actual: PlotRange,
     pub plot_image_size: (u32, u32),
+    pub plot_image_string: Option<String>,
 }
 
 impl State {
@@ -39,6 +40,7 @@ impl State {
             plot_settings: PlotSettings::new(),
             plot_range_actual: PlotRange::Auto,
             plot_image_size: (600,400),
+            plot_image_string: None,
         }
     }
 
@@ -181,6 +183,7 @@ impl State {
                     (string, range)
                 },
             };
+            self.plot_image_string = Some(svg_string.clone());
             return Some((svg_string, range));
         }
         None
