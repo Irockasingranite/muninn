@@ -158,7 +158,7 @@ fn truncate_line(line: &[Point], x_range: &Range, y_range: &Range) -> Vec<Vec<Po
 /// Take a vector of vectors of points, and plot them into an SVG file, returned as a String
 pub fn plot_data_slice_to_svg(data_slice: &DataSlice, plot_settings: &PlotSettings, image_size: &(u32, u32)) -> (String, PlotRange)
 {
-    let (_filenames, data) = data_slice;
+    let data = &data_slice.datalines;
 
     // Parameters
     let point_size = 2; // Point Size

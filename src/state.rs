@@ -11,7 +11,7 @@ pub struct State {
     pub update_interval: i32, // in ms
     pub timestep_interval: usize, // allows skipping timesteps
     pub loaded_data: Option<Data>, // Currently loaded dataset
-    current_slice: Option<DataSlice>, // Slice for current timestep
+    pub current_slice: Option<DataSlice>, // Slice for current timestep
     pub is_playing: bool, // Whether the plot is being animated
     last_step_made_at: Instant, // time when last frame was rendered
     pub update_needed: bool, // whether the current image needs to be updated
@@ -133,7 +133,7 @@ impl State {
         }
     }
 
-    /// Set state to the first timestep in the loaded data. Returns the time on that step. Returns None if no steps are loaded.
+    /// Set state to the first timestep in the loaded dlinesata. Returns the time on that step. Returns None if no steps are loaded.
     pub fn go_to_first_step(&mut self) -> Option<f64> {
         self.go_to_step(0)
     }

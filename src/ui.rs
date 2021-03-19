@@ -351,6 +351,30 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
         save_file_chooser_dialog.hide(); 
     });
 
+    // export_gnuplot_button setup
+    let export_gnuplot_button: Button = builder.get_object("export_gnuplot_button")
+        .expect("Failed to get export_gnuplot_button");
+    export_gnuplot_button.connect_clicked(clone!(@strong window,
+                                                 @weak state_cell => move |_| {
+        let file_chooser_dialog = FileChooserDialog::new(Some("Export as"), Some(&window), gtk::FileChooserAction::Save);
+        file_chooser_dialog.add_button("Cancel", ResponseType::Cancel);
+        file_chooser_dialog.add_button("Save", ResponseType::Accept);
+        file_chooser_dialog.connect_response(clone!(@weak state_cell => move |d, r| {
+            if let ResponseType::Accept = r {
+                if let Some(filename) = d.get_filename() {
+                    let filename = filename.as_path().display().to_string();
+                    if let Some(dataslice) = &state_cell.borrow().current_slice {
+                        let gnuplot_string = dataslice.to_string_gnuplot();
+                        std::fs::write(filename, gnuplot_string).expect("Failed to write file");
+                    }
+                }
+            }
+        }));
+
+        file_chooser_dialog.run();
+        file_chooser_dialog.hide();
+    }));
+
     // Custom update routine (called every 10 ms)
     let state_clone = state_cell;
     let current_time_entry_buffer_clone = current_time_entry_buffer;

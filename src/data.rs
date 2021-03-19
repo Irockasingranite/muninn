@@ -1,7 +1,26 @@
 mod timeseries;
 pub use timeseries::{TimeSeries, DataLine, Point};
 
-pub type DataSlice = (Vec<String>, Vec<DataLine>);
+#[derive(Clone)]
+pub struct DataSlice {
+    pub filenames: Vec<String>,
+    pub datalines: Vec<DataLine>,
+}
+
+impl DataSlice {
+    pub fn to_string_gnuplot(&self) -> String {
+        let mut gnuplot_string = String::new();
+
+        for dataline in &self.datalines {
+            for point in dataline {
+                gnuplot_string.push_str(&format!("{:.15e}\t{:.15e}\n", point.0, point.1));
+            }
+            gnuplot_string.push_str("\n\n");
+        }
+
+        gnuplot_string
+    }
+}
 
 #[derive(Clone)]
 pub struct Data {
@@ -64,6 +83,8 @@ impl Data {
             }
         }
 
-        (filenames, lines)
+        DataSlice{
+            filenames,
+            datalines: lines,}
     }
 }
