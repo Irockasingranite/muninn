@@ -202,6 +202,15 @@ pub fn plot_data_slice_to_svg(data_slice: &DataSlice, plot_settings: &PlotSettin
                 xmax += padding * dx;
             }
 
+            if xmax == xmin {
+                xmin -= 0.05;
+                xmax += 0.05;
+            }
+            if ymax == ymin {
+                ymin -= 0.05;
+                ymax += 0.05;
+            }
+
             if plot_settings.use_logscale_y {
                 if ymin <= 0.0 {
                     ymin = 1.0e-10;
