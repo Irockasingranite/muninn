@@ -45,20 +45,15 @@ impl State {
     }
 
     pub fn load_data(&mut self, data: Data) {
-        let mut all_times = Vec::new();
-        for ts in data.timeseries.iter() {
-            let mut t = ts.times.clone();
-            all_times.append(&mut t);
-        }
-        all_times.sort_by(|x, y| x.partial_cmp(y).unwrap());
-        all_times.dedup();
-        let current_time = match all_times.first() {
+        let times = data.times();
+        
+        let current_time = match times.first() {
             Some(t) => *t,
             None => 0.0,
         };
 
-        self.n_steps = all_times.len();
-        self.times = all_times;
+        self.n_steps = times.len();
+        self.times = times;
         self.current_time = current_time;
         self.current_slice = Some(data.at_time(current_time));
         self.loaded_data = Some(data);
