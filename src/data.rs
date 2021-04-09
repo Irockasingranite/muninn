@@ -87,6 +87,11 @@ impl Data {
             if let Some(slice) = data.dataslices.last_mut() {
                 if slice.time == t {
                     slice.datalines.push(l);
+                } else {
+                    data.dataslices.push(DataSlice {
+                        time: t,
+                        datalines: vec![l]
+                    });
                 }
             } else {
                 data.dataslices.push(DataSlice {
