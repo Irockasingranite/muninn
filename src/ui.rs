@@ -404,10 +404,37 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
                         => (x_min, x_max, y_min, y_max),
                     PlotRange::Auto => (0.0, 1.0, 0.0, 1.0),
                 };
-                x_min_entry_buffer_clone.set_text(format!("{:.3}", x_min).as_str());
-                x_max_entry_buffer_clone.set_text(format!("{:.3}", x_max).as_str());
-                y_min_entry_buffer_clone.set_text(format!("{:.3}", y_min).as_str());
-                y_max_entry_buffer_clone.set_text(format!("{:.3}", y_max).as_str());
+
+                // Pick formatting depending on the actual value
+                // switch to scientific notation for small and large values
+                let x_min_entry_text = if (x_min.abs() < 1.0e-3  || x_min.abs() > 1.0e3) && x_min != 0.0 {
+                    format!("{:.3e}", x_min)
+                } else {
+                    format!("{:.3}", x_min)
+                };
+
+                let x_max_entry_text = if (x_max.abs() < 1.0e-3  || x_max.abs() > 1.0e3) && x_max != 0.0 {
+                    format!("{:.3e}", x_max)
+                } else {
+                    format!("{:.3}", x_max)
+                };
+
+                let y_min_entry_text = if (y_min.abs() < 1.0e-3  || y_min.abs() > 1.0e3) && y_min != 0.0 {
+                    format!("{:.3e}", y_min)
+                } else {
+                    format!("{:.3}", y_min)
+                };
+
+                let y_max_entry_text = if (y_max.abs() < 1.0e-3  || y_max.abs() > 1.0e3) && y_max != 0.0 {
+                    format!("{:.3e}", y_max)
+                } else {
+                    format!("{:.3}", y_max)
+                };
+
+                x_min_entry_buffer_clone.set_text(x_min_entry_text.as_str());
+                x_max_entry_buffer_clone.set_text(x_max_entry_text.as_str());
+                y_min_entry_buffer_clone.set_text(y_min_entry_text.as_str());
+                y_max_entry_buffer_clone.set_text(y_max_entry_text.as_str());
             }
 
         }
