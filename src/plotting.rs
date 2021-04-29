@@ -7,12 +7,13 @@ pub type Range = (f64, f64);
 #[derive(Debug, Clone, Copy)]
 pub enum PlotRange {
     Auto,
-    Fixed(Range, Range),
+    Fixed(Range),
 }
 
 #[derive(Debug, Clone)]
 pub struct PlotSettings {
-    pub plot_range: PlotRange,
+    pub plot_range_x: PlotRange,
+    pub plot_range_y: PlotRange,
     pub draw_lines: bool,
     pub draw_points: bool,
     pub use_color: bool,
@@ -23,7 +24,8 @@ pub struct PlotSettings {
 impl PlotSettings {
     pub fn new() -> PlotSettings {
         PlotSettings {
-            plot_range: PlotRange::Auto,
+            plot_range_x: PlotRange::Auto,
+            plot_range_y: PlotRange::Auto,
             draw_lines: true,
             draw_points: true,
             use_color: true,
@@ -156,7 +158,7 @@ fn truncate_line(line: &[Point], x_range: &Range, y_range: &Range) -> Vec<Vec<Po
 }
 
 /// Take a vector of vectors of points, and plot them into an SVG file, returned as a String
-pub fn plot_data_slice_to_svg(data_slice: &DataSlice, plot_settings: &PlotSettings, image_size: &(u32, u32)) -> (String, PlotRange)
+pub fn plot_data_slice_to_svg(data_slice: &DataSlice, plot_settings: &PlotSettings, image_size: &(u32, u32)) -> (String, (PlotRange, PlotRange))
 {
     let data = &data_slice.datalines;
 
@@ -167,67 +169,80 @@ pub fn plot_data_slice_to_svg(data_slice: &DataSlice, plot_settings: &PlotSettin
         false => vec![BLACK],
     };
     let n_colors = colors.len();
-    let padding = 0.0;
+    let x_padding = 0.0;
+    let y_padding = 0.02;
 
     // Figure out drawing area
-    let ((xmin, xmax), (ymin, ymax)) = match plot_settings.plot_range {
-        PlotRange::Fixed(x_range, y_range) => (x_range, y_range),
+    let (mut xmin, mut xmax) = match plot_settings.plot_range_x {
+        PlotRange::Fixed(x_range) => x_range,
         PlotRange::Auto => {
             let mut xmaxs = Vec::new();
             let mut xmins = Vec::new();
-            let mut ymaxs = Vec::new();
-            let mut ymins = Vec::new();
             for series in data {
                 xmaxs.push(series.iter().max_by(|(x1,_),(x2,_)| x1.partial_cmp(x2).unwrap()).unwrap().0);
                 xmins.push(series.iter().min_by(|(x1,_),(x2,_)| x1.partial_cmp(x2).unwrap()).unwrap().0);
-                ymaxs.push(series.iter().max_by(|(_,y1),(_,y2)| y1.partial_cmp(y2).unwrap()).unwrap().1);
-                ymins.push(series.iter().min_by(|(_,y1),(_,y2)| y1.partial_cmp(y2).unwrap()).unwrap().1);
             }
 
-            let mut xmin = *xmins.iter().min_by(|x, y| x.partial_cmp(y).unwrap()).unwrap();
-            let mut xmax = *xmaxs.iter().max_by(|x, y| x.partial_cmp(y).unwrap()).unwrap();
-            let mut ymin = *ymins.iter().min_by(|x, y| x.partial_cmp(y).unwrap()).unwrap();
-            let mut ymax = *ymaxs.iter().max_by(|x, y| x.partial_cmp(y).unwrap()).unwrap();
+            let xmin = *xmins.iter().min_by(|x, y| x.partial_cmp(y).unwrap()).unwrap();
+            let xmax = *xmaxs.iter().max_by(|x, y| x.partial_cmp(y).unwrap()).unwrap();
 
-            if plot_settings.use_logscale_x {
-                if xmin <= 0.0 {
-                    xmin = 1.0e-10;
-                }
-                let dx = xmax.log(10.0) - xmin.log(10.0);
-                xmin = 10.0_f64.powf(xmin.log(10.0) - padding * dx);
-                xmax = 10.0_f64.powf(xmax.log(10.0) + padding * dx);
-            } else {
-                let dx = xmax - xmin;
-                xmin -= padding * dx;
-                xmax += padding * dx;
-            }
-
-            if xmax == xmin {
-                xmin -= 0.05;
-                xmax += 0.05;
-            }
-            if ymax == ymin {
-                ymin -= 0.05;
-                ymax += 0.05;
-            }
-
-            if plot_settings.use_logscale_y {
-                if ymin <= 0.0 {
-                    ymin = 1.0e-10;
-                }
-                let dy = ymax.log(10.0) - ymin.log(10.0);
-                ymin = 10.0_f64.powf(ymin.log(10.0) - padding * dy);
-                ymax = 10.0_f64.powf(ymax.log(10.0) + padding * dy);
-            } else {
-                let dy = ymax - ymin;
-                ymin -= padding * dy;
-                ymax += padding * dy;
-            }
-            ((xmin, xmax), (ymin, ymax))
+            (xmin, xmax)
         }
     };
 
-    let plotted_range = PlotRange::Fixed((xmin, xmax), (ymin, ymax));
+
+    let (mut ymin, mut ymax) = match plot_settings.plot_range_y {
+        PlotRange::Fixed(y_range) => y_range,
+        PlotRange::Auto => {
+            // Filter the points to only consider those in the specified x-range
+            let mut points: Vec<Point> = Vec::new();
+            for series in data {
+                points.extend(series.iter().filter(|(x, _y)| x >= &xmin && x <= &xmax ));
+            }
+
+            let ymin = points.iter().min_by(|(_,y1),(_,y2)| y1.partial_cmp(y2).unwrap()).unwrap().1;
+            let ymax = points.iter().max_by(|(_,y1),(_,y2)| y1.partial_cmp(y2).unwrap()).unwrap().1;
+
+            (ymin, ymax)
+        }
+    };
+
+    if plot_settings.use_logscale_x {
+        if xmin <= 0.0 {
+            xmin = 1.0e-10;
+        }
+        let dx = xmax.log(10.0) - xmin.log(10.0);
+        xmin = 10.0_f64.powf(xmin.log(10.0) - x_padding * dx);
+        xmax = 10.0_f64.powf(xmax.log(10.0) + x_padding * dx);
+    } else {
+        let dx = xmax - xmin;
+        xmin -= x_padding * dx;
+        xmax += x_padding * dx;
+    }
+
+    if xmax == xmin {
+        xmin -= 0.05;
+        xmax += 0.05;
+    }
+    if plot_settings.use_logscale_y {
+        if ymin <= 0.0 {
+            ymin = 1.0e-10;
+        }
+        let dy = ymax.log(10.0) - ymin.log(10.0);
+        ymin = 10.0_f64.powf(ymin.log(10.0) - y_padding * dy);
+        ymax = 10.0_f64.powf(ymax.log(10.0) + y_padding * dy);
+    } else {
+        let dy = ymax - ymin;
+        ymin -= y_padding * dy;
+        ymax += y_padding * dy;
+    }
+
+    if ymax == ymin {
+        ymin -= 0.05;
+        ymax += 0.05;
+    }
+
+    let plotted_ranges = (PlotRange::Fixed((xmin, xmax)), PlotRange::Fixed((ymin, ymax)));
 
     // Filter data to work around plotters bug
     // For point series: Remove any points outside the plotting area
@@ -413,5 +428,5 @@ pub fn plot_data_slice_to_svg(data_slice: &DataSlice, plot_settings: &PlotSettin
     }
 
     // Return "file" and actual range
-    (svg_string, plotted_range)
+    (svg_string, plotted_ranges)
 }

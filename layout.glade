@@ -414,7 +414,7 @@
                 <property name="adjustment">update_interval_adjustment</property>
                 <property name="climb-rate">0.10</property>
                 <property name="numeric">True</property>
-                <property name="value">100</property>
+                <property name="value">150</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -529,7 +529,7 @@
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="padding">2</property>
+                <property name="padding">5</property>
                 <property name="position">4</property>
               </packing>
             </child>
@@ -559,18 +559,6 @@
               </packing>
             </child>
             <child>
-              <object class="GtkEntry" id="y_max_entry">
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="width-chars">8</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">7</property>
-              </packing>
-            </child>
-            <child>
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
@@ -579,38 +567,49 @@
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
+                <property name="position">7</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="y_max_entry">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="width-chars">8</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
                 <property name="position">8</property>
               </packing>
             </child>
             <child>
-              <object class="GtkToggleButton" id="logscale_x_toggle">
-                <property name="label" translatable="yes">log x</property>
+              <object class="GtkSeparator">
                 <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
+                <property name="can-focus">False</property>
               </object>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
+                <property name="padding">5</property>
                 <property name="position">9</property>
               </packing>
             </child>
             <child>
-              <object class="GtkToggleButton" id="logscale_y_toggle">
-                <property name="label" translatable="yes">log y</property>
+              <object class="GtkLabel" id="autoscale_label">
                 <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Autoscale:</property>
               </object>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
+                <property name="padding">5</property>
                 <property name="position">10</property>
               </packing>
             </child>
             <child>
-              <object class="GtkToggleButton" id="autoscale_toggle">
-                <property name="label" translatable="yes">Autoscale</property>
+              <object class="GtkToggleButton" id="autoscale_x_toggle">
+                <property name="label" translatable="yes">x</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
@@ -623,6 +622,83 @@
               </packing>
             </child>
             <child>
+              <object class="GtkToggleButton" id="autoscale_y_toggle">
+                <property name="label" translatable="yes">y</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="active">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">12</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSeparator">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="padding">5</property>
+                <property name="position">13</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Logscale:</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="padding">5</property>
+                <property name="position">14</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkToggleButton" id="logscale_x_toggle">
+                <property name="label" translatable="yes">x</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">15</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkToggleButton" id="logscale_y_toggle">
+                <property name="label" translatable="yes">y</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">16</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSeparator">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="padding">5</property>
+                <property name="position">17</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkToggleButton" id="line_toggle">
                 <property name="label" translatable="yes">L</property>
                 <property name="visible">True</property>
@@ -632,7 +708,7 @@
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">12</property>
+                <property name="position">19</property>
               </packing>
             </child>
             <child>
@@ -645,7 +721,7 @@
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">13</property>
+                <property name="position">20</property>
               </packing>
             </child>
             <child>
@@ -659,7 +735,7 @@
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">14</property>
+                <property name="position">21</property>
               </packing>
             </child>
           </object>

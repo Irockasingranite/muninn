@@ -162,20 +162,36 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
     }));
 
     // Autoscale toggle setup
-    let autoscale_toggle: ToggleButton = builder.get_object("autoscale_toggle")
-        .expect("Failed to get autoscale_toggle");
-    autoscale_toggle.connect_toggled(clone!(@strong autoscale_toggle,
+    let autoscale_x_toggle: ToggleButton = builder.get_object("autoscale_x_toggle")
+        .expect("Failed to get autoscale_x_toggle");
+    autoscale_x_toggle.connect_toggled(clone!(@strong autoscale_x_toggle,
                                             @weak state_cell => move |_| {
-        let checked = autoscale_toggle.get_active();
+        let checked = autoscale_x_toggle.get_active();
         if checked {
-            state_cell.borrow_mut().plot_settings.plot_range = PlotRange::Auto;
+            state_cell.borrow_mut().plot_settings.plot_range_x = PlotRange::Auto;
             state_cell.borrow_mut().update_needed = true;
         } else {
             let mut state = state_cell.borrow_mut();
-            state.plot_settings.plot_range = state.plot_range_actual;
+            state.plot_settings.plot_range_x = state.plot_range_x_actual;
         }
     }));
-    autoscale_toggle.set_active(true);
+    autoscale_x_toggle.set_active(true);
+
+    // Autoscale toggle setup
+    let autoscale_y_toggle: ToggleButton = builder.get_object("autoscale_y_toggle")
+        .expect("Failed to get autoscale_y_toggle");
+    autoscale_y_toggle.connect_toggled(clone!(@strong autoscale_y_toggle,
+                                            @weak state_cell => move |_| {
+        let checked = autoscale_y_toggle.get_active();
+        if checked {
+            state_cell.borrow_mut().plot_settings.plot_range_y = PlotRange::Auto;
+            state_cell.borrow_mut().update_needed = true;
+        } else {
+            let mut state = state_cell.borrow_mut();
+            state.plot_settings.plot_range_y = state.plot_range_y_actual;
+        }
+    }));
+    autoscale_y_toggle.set_active(true);
 
     // Logscale x toggle setup
     let logscale_x_toggle: ToggleButton = builder.get_object("logscale_x_toggle")
@@ -231,16 +247,16 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
         .expect("Failed to get x_min_entry");
     let x_min_entry_buffer = x_min_entry.get_buffer();
     x_min_entry.connect_activate(clone!(@strong x_min_entry_buffer as buf,
-                                        @strong autoscale_toggle,
+                                        @strong autoscale_x_toggle,
                                         @weak state_cell => move |_| {
         let text = buf.get_text();
         if let Ok(x_min_new) = text.parse::<f64>() {
-            let ((_x_min, x_max), (y_min, y_max)) = match state_cell.borrow().plot_range_actual {
-                PlotRange::Fixed(x_range,y_range) => (x_range, y_range),
-                PlotRange::Auto => ((0.0, 1.0), (0.0, 1.0)),
+            let (_x_min, x_max) = match state_cell.borrow().plot_range_x_actual {
+                PlotRange::Fixed(x_range) => x_range,
+                PlotRange::Auto => (0.0, 1.0),
             };
-            autoscale_toggle.set_active(false);
-            state_cell.borrow_mut().plot_settings.plot_range = PlotRange::Fixed((x_min_new, x_max), (y_min, y_max));
+            autoscale_x_toggle.set_active(false);
+            state_cell.borrow_mut().plot_settings.plot_range_x = PlotRange::Fixed((x_min_new, x_max));
             state_cell.borrow_mut().update_needed = true;
         }
     }));
@@ -250,16 +266,16 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
         .expect("Failed to get x_max_entry");
     let x_max_entry_buffer = x_max_entry.get_buffer();
     x_max_entry.connect_activate(clone!(@strong x_max_entry_buffer as buf,
-                                        @strong autoscale_toggle,
+                                        @strong autoscale_x_toggle,
                                         @weak state_cell => move |_| {
         let text = buf.get_text();
         if let Ok(x_max_new) = text.parse::<f64>() {
-            let ((x_min, _x_max), (y_min, y_max)) = match state_cell.borrow().plot_range_actual {
-                PlotRange::Fixed(x_range,y_range) => (x_range, y_range),
-                PlotRange::Auto => ((0.0, 1.0), (0.0, 1.0)),
+            let (x_min, _x_max) = match state_cell.borrow().plot_range_x_actual {
+                PlotRange::Fixed(x_range) => x_range,
+                PlotRange::Auto => (0.0, 1.0),
             };
-            autoscale_toggle.set_active(false);
-            state_cell.borrow_mut().plot_settings.plot_range = PlotRange::Fixed((x_min, x_max_new), (y_min, y_max));
+            autoscale_x_toggle.set_active(false);
+            state_cell.borrow_mut().plot_settings.plot_range_x = PlotRange::Fixed((x_min, x_max_new));
             state_cell.borrow_mut().update_needed = true;
         }
     }));
@@ -269,16 +285,16 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
         .expect("Failed to get y_min_entry");
     let y_min_entry_buffer = y_min_entry.get_buffer();
     y_min_entry.connect_activate(clone!(@strong y_min_entry_buffer as buf,
-                                        @strong autoscale_toggle,
+                                        @strong autoscale_y_toggle,
                                         @weak state_cell => move |_| {
         let text = buf.get_text();
         if let Ok(y_min_new) = text.parse::<f64>() {
-            let ((x_min, x_max), (_y_min, y_max)) = match state_cell.borrow().plot_range_actual {
-                PlotRange::Fixed(x_range,y_range) => (x_range, y_range),
-                PlotRange::Auto => ((0.0, 1.0), (0.0, 1.0)),
+            let (_y_min, y_max) = match state_cell.borrow().plot_range_y_actual {
+                PlotRange::Fixed(y_range) => y_range,
+                PlotRange::Auto => (0.0, 1.0),
             };
-            autoscale_toggle.set_active(false);
-            state_cell.borrow_mut().plot_settings.plot_range = PlotRange::Fixed((x_min, x_max), (y_min_new, y_max));
+            autoscale_y_toggle.set_active(false);
+            state_cell.borrow_mut().plot_settings.plot_range_y = PlotRange::Fixed((y_min_new, y_max));
             state_cell.borrow_mut().update_needed = true;
         }
     }));
@@ -288,16 +304,16 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
         .expect("Failed to get y_max_entry");
     let y_max_entry_buffer = y_max_entry.get_buffer();
     y_max_entry.connect_activate(clone!(@strong y_max_entry_buffer as buf,
-                                        @strong autoscale_toggle,
+                                        @strong autoscale_y_toggle,
                                         @weak state_cell => move |_| {
         let text = buf.get_text();
         if let Ok(y_max_new) = text.parse::<f64>() {
-            let ((x_min, x_max), (y_min, _y_max)) = match state_cell.borrow().plot_range_actual {
-                PlotRange::Fixed(x_range,y_range) => (x_range, y_range),
-                PlotRange::Auto => ((0.0, 1.0), (0.0, 1.0)),
+            let (y_min, _y_max) = match state_cell.borrow().plot_range_y_actual {
+                PlotRange::Fixed(y_range) => y_range,
+                PlotRange::Auto => (0.0, 1.0),
             };
-            autoscale_toggle.set_active(false);
-            state_cell.borrow_mut().plot_settings.plot_range = PlotRange::Fixed((x_min, x_max), (y_min, y_max_new));
+            autoscale_y_toggle.set_active(false);
+            state_cell.borrow_mut().plot_settings.plot_range_y = PlotRange::Fixed((y_min, y_max_new));
             state_cell.borrow_mut().update_needed = true;
         }
     }));
@@ -399,10 +415,14 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
                 plot_image_clone.set_from_pixbuf(Some(&buf));
 
                 // Update range entries
-                let (x_min, x_max, y_min, y_max) = match r {
-                    PlotRange::Fixed((x_min, x_max), (y_min, y_max)) 
-                        => (x_min, x_max, y_min, y_max),
-                    PlotRange::Auto => (0.0, 1.0, 0.0, 1.0),
+                let (plot_range_x, plot_range_y) = r;
+                let (x_min, x_max) = match plot_range_x {
+                    PlotRange::Fixed(x_range) => x_range,
+                    PlotRange::Auto => (0.0, 1.0),
+                };
+                let (y_min, y_max) = match plot_range_y {
+                    PlotRange::Fixed(y_range) => y_range,
+                    PlotRange::Auto => (0.0, 1.0),
                 };
 
                 // Pick formatting depending on the actual value

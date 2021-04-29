@@ -17,7 +17,8 @@ pub struct State {
     pub update_needed: bool, // whether the current image needs to be updated
     // pub plot_range_setting: PlotRange,
     pub plot_settings: PlotSettings,
-    pub plot_range_actual: PlotRange,
+    pub plot_range_x_actual: PlotRange,
+    pub plot_range_y_actual: PlotRange,
     pub plot_image_size: (u32, u32),
     pub plot_image_string: Option<String>,
 }
@@ -38,7 +39,8 @@ impl State {
             update_needed: true,
             // plot_range_setting: PlotRange::Auto,
             plot_settings: PlotSettings::new(),
-            plot_range_actual: PlotRange::Auto,
+            plot_range_x_actual: PlotRange::Auto,
+            plot_range_y_actual: PlotRange::Auto,
             plot_image_size: (600,400),
             plot_image_string: None,
         }
@@ -159,27 +161,31 @@ impl State {
         self.go_to_step(target_step)
     }
 
-    pub fn update_plot(&mut self) -> Option<(String, PlotRange)> {
+    pub fn update_plot(&mut self) -> Option<(String, (PlotRange, PlotRange))> {
         use crate::plotting::{plot_data_slice_to_svg};
         if let Some(d) = &self.loaded_data {
-            let (svg_string, range): (String, PlotRange) = match &self.current_slice {
+            let (svg_string, ranges): (String, (PlotRange, PlotRange)) = match &self.current_slice {
                 None => {
                     let s = d.at_time(self.current_time);
-                    let (string, range) = plot_data_slice_to_svg(&s, &self.plot_settings, &self.plot_image_size);
+                    let (string, ranges) = plot_data_slice_to_svg(&s, &self.plot_settings, &self.plot_image_size);
                     self.current_slice = Some(s);
                     self.update_needed = false;
-                    self.plot_range_actual = range;
-                    (string, range)
+                    let (x_range, y_range) = ranges;
+                    self.plot_range_x_actual = x_range;
+                    self.plot_range_y_actual = y_range;
+                    (string, ranges)
                 },
                 Some(s) => {
                     self.update_needed = false;
-                    let (string, range) = plot_data_slice_to_svg(&s, &self.plot_settings, &self.plot_image_size);
-                    self.plot_range_actual = range;
-                    (string, range)
+                    let (string, ranges) = plot_data_slice_to_svg(&s, &self.plot_settings, &self.plot_image_size);
+                    let (x_range, y_range) = ranges;
+                    self.plot_range_x_actual = x_range;
+                    self.plot_range_y_actual = y_range;
+                    (string, ranges)
                 },
             };
             self.plot_image_string = Some(svg_string.clone());
-            return Some((svg_string, range));
+            return Some((svg_string, ranges));
         }
         None
     }
