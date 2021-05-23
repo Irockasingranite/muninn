@@ -148,7 +148,7 @@ fn read_datalines_from_file(filename: &str) -> Result<Vec<(Time, DataLine)>> {
             }
           // Add points to the latest dataline  
         } else if let Some(dataline) = datalines.last_mut() {
-            let mut words = line.trim().split(' ');
+            let mut words = line.trim().split_whitespace();
             if let (Ok(x), Ok(y)) = (words.next().unwrap().parse::<f64>(),
                                      words.next().unwrap().parse::<f64>()) {
                 dataline.push((x,y));
