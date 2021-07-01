@@ -179,12 +179,22 @@ pub fn plot_data_slice_to_svg(data_slice: &DataSlice, plot_settings: &PlotSettin
             let mut xmaxs = Vec::new();
             let mut xmins = Vec::new();
             for series in data {
-                xmaxs.push(series.iter().max_by(|(x1,_),(x2,_)| x1.partial_cmp(x2).unwrap()).unwrap().0);
-                xmins.push(series.iter().min_by(|(x1,_),(x2,_)| x1.partial_cmp(x2).unwrap()).unwrap().0);
+                if !series.is_empty() {
+                    xmaxs.push(series.iter().max_by(|(x1,_),(x2,_)| x1.partial_cmp(x2).unwrap()).unwrap().0);
+                    xmins.push(series.iter().min_by(|(x1,_),(x2,_)| x1.partial_cmp(x2).unwrap()).unwrap().0);
+                }
             }
 
-            let xmin = *xmins.iter().min_by(|x, y| x.partial_cmp(y).unwrap()).unwrap();
-            let xmax = *xmaxs.iter().max_by(|x, y| x.partial_cmp(y).unwrap()).unwrap();
+            let xmin = if !xmins.is_empty() {
+                *xmins.iter().min_by(|x, y| x.partial_cmp(y).unwrap()).unwrap()
+            } else {
+                0.0
+            };
+            let xmax = if !xmaxs.is_empty() {
+                *xmaxs.iter().max_by(|x, y| x.partial_cmp(y).unwrap()).unwrap()
+            } else {
+                0.0
+            };
 
             (xmin, xmax)
         }
