@@ -210,8 +210,16 @@ pub fn plot_data_slice_to_svg(data_slice: &DataSlice, plot_settings: &PlotSettin
                 points.extend(series.iter().filter(|(x, _y)| x >= &xmin && x <= &xmax ));
             }
 
-            let ymin = points.iter().min_by(|(_,y1),(_,y2)| y1.partial_cmp(y2).unwrap()).unwrap().1;
-            let ymax = points.iter().max_by(|(_,y1),(_,y2)| y1.partial_cmp(y2).unwrap()).unwrap().1;
+            let ymin = if !points.is_empty() {
+                points.iter().min_by(|(_,y1),(_,y2)| y1.partial_cmp(y2).unwrap()).unwrap().1
+            } else {
+                0.0
+            };
+            let ymax = if !points.is_empty() {
+                points.iter().max_by(|(_,y1),(_,y2)| y1.partial_cmp(y2).unwrap()).unwrap().1
+            } else {
+                0.0
+            };
 
             (ymin, ymax)
         }
