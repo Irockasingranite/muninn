@@ -301,7 +301,7 @@ pub fn plot_data_slice_to_svg(data_slice: &DataSlice, plot_settings: &PlotSettin
                 let mut chart = ChartBuilder::on(&root)
                                 .x_label_area_size(20)
                                 .y_label_area_size(50)
-                                .build_ranged(x_range, y_range)
+                                .build_cartesian_2d(x_range, y_range)
                                 .expect("Failed to build chart");
 
                 chart.configure_mesh().draw().expect("Failed to draw mesh");
@@ -337,7 +337,7 @@ pub fn plot_data_slice_to_svg(data_slice: &DataSlice, plot_settings: &PlotSettin
                 let mut chart = ChartBuilder::on(&root)
                                 .x_label_area_size(20)
                                 .y_label_area_size(50)
-                                .build_ranged(x_range, LogRange(y_range))
+                                .build_cartesian_2d(x_range, y_range.log_scale())
                                 .expect("Failed to build chart");
 
                 chart.configure_mesh().draw().expect("Failed to draw mesh");
@@ -373,7 +373,7 @@ pub fn plot_data_slice_to_svg(data_slice: &DataSlice, plot_settings: &PlotSettin
                 let mut chart = ChartBuilder::on(&root)
                                 .x_label_area_size(20)
                                 .y_label_area_size(50)
-                                .build_ranged(LogRange(x_range), y_range)
+                                .build_cartesian_2d(x_range.log_scale(), y_range)
                                 .expect("Failed to build chart");
 
                 chart.configure_mesh().draw().expect("Failed to draw mesh");
@@ -409,7 +409,7 @@ pub fn plot_data_slice_to_svg(data_slice: &DataSlice, plot_settings: &PlotSettin
                 let mut chart = ChartBuilder::on(&root)
                                 .x_label_area_size(20)
                                 .y_label_area_size(50)
-                                .build_ranged(LogRange(x_range), LogRange(y_range))
+                                .build_cartesian_2d(x_range.log_scale(), y_range.log_scale())
                                 .expect("Failed to build chart");
 
                 chart.configure_mesh().draw().expect("Failed to draw mesh");
