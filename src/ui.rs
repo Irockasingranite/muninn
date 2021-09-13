@@ -1,3 +1,6 @@
+use glib::timeout_add_local;
+use std::time::Duration;
+
 use gtk::{Application, ApplicationWindow, Builder, Button, Entry, EventBox, FileChooserDialog, Image, SpinButton, ToggleButton, Viewport};
 use gtk::ResponseType;
 use gtk::prelude::*;
@@ -9,36 +12,36 @@ use crate::state::{State};
 use crate::data::{Data};
 use crate::plotting::{PlotRange};
 
-use gdk_pixbuf::{Pixbuf, PixbufLoader, PixbufLoaderExt};
+use gdk_pixbuf::{Pixbuf, PixbufLoader};
 fn pixbuf_from_string(s: &str) -> Pixbuf {
     let loader = PixbufLoader::new();
     loader.write(s.as_bytes()).expect("Failed to load string into Pixbuf");
     loader.close()
         .expect("Failed to close PixBufLoader");
-    loader.get_pixbuf().unwrap()
+    loader.pixbuf().unwrap()
 }
 
 pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
     let glade_src = include_str!("../layout.glade");
-    let builder = Builder::new_from_string(glade_src);
+    let builder = Builder::from_string(glade_src);
 
     // Main Window setup
-    let window: ApplicationWindow = builder.get_object("main_app_window")
+    let window: ApplicationWindow = builder.object("main_app_window")
         .expect("Failed to get appWindow");
     window.set_application(Some(application));
 
     // Plot Image setup
-    let plot_image: Image = builder.get_object("plot_image")
+    let plot_image: Image = builder.object("plot_image")
         .expect("Failed to get plot_image");
-    let plot_image_event_box: EventBox = builder.get_object("plot_image_event_box")
+    let plot_image_event_box: EventBox = builder.object("plot_image_event_box")
         .expect("Failed to get plot_image_event_box");
     plot_image_event_box.add_events(gdk::EventMask::SCROLL_MASK);
     plot_image_event_box.connect_scroll_event(move |_, event| {
-        let (_x, _y) = event.get_position();
+        let (_x, _y) = event.position();
         // println!("scroll at ({}, {})!", x, y);
         Inhibit(false)
     });
-    let plot_image_viewport: Viewport = builder.get_object("plot_image_viewport")
+    let plot_image_viewport: Viewport = builder.object("plot_image_viewport")
         .expect("Failed to get plot_image_viewport");
     plot_image_viewport.connect_size_allocate(clone!(@weak state_cell => move |_, allocation| {
         let width = allocation.width as u32;
@@ -51,12 +54,12 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
     }));
 
     // Play/Pause button setup
-    let play_pause_button: Button = builder.get_object("play_pause_button")
+    let play_pause_button: Button = builder.object("play_pause_button")
         .expect("Failed to get play_pause_button");
 
-    let play_icon: Image = builder.get_object("play_icon")
+    let play_icon: Image = builder.object("play_icon")
         .expect("Failed to get play_icon");
-    let pause_icon: Image = builder.get_object("pause_icon")
+    let pause_icon: Image = builder.object("pause_icon")
         .expect("Failed to get pause_icon");
 
     play_pause_button.connect_clicked(clone!(@weak state_cell,
@@ -80,13 +83,13 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
     }));
 
     // Time entry setup
-    let current_time_entry: Entry = builder.get_object("current_time_entry")
+    let current_time_entry: Entry = builder.object("current_time_entry")
         .expect("Failed to get current_time_entry");
-    let current_time_entry_buffer = current_time_entry.get_buffer();
+    let current_time_entry_buffer = current_time_entry.buffer();
     current_time_entry.connect_activate(clone!(@weak state_cell,
                                                @strong current_time_entry_buffer as buf
                                                => move |_| {
-        let text = buf.get_text();
+        let text = buf.text();
         if let Ok(t) = text.parse::<f64>() {
             let new_time = state_cell.borrow_mut().jump_to_time(t);
             if let Some(t) = new_time {
@@ -98,7 +101,7 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
     current_time_entry_buffer.set_text(format!("{:.3}", time).as_str());
 
     // First button setup
-    let first_button: Button = builder.get_object("first_button")
+    let first_button: Button = builder.object("first_button")
         .expect("Failed to get first_button");
     first_button.connect_clicked(clone!(@strong current_time_entry_buffer,
                                         @weak state_cell => move |_| {
@@ -109,7 +112,7 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
     }));   
 
     // Previous button setup
-    let previous_button: Button = builder.get_object("previous_button")
+    let previous_button: Button = builder.object("previous_button")
         .expect("Failed to get previous_button");
     previous_button.connect_clicked(clone!(@strong current_time_entry_buffer,
                                            @weak state_cell => move |_| {
@@ -120,7 +123,7 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
     }));
 
     // Next button setup
-    let next_button: Button = builder.get_object("next_button")
+    let next_button: Button = builder.object("next_button")
         .expect("Failed to get next_button");
     next_button.connect_clicked(clone!(@strong current_time_entry_buffer,
                                        @weak state_cell => move |_| {
@@ -131,7 +134,7 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
     }));
 
     // Last button setup
-    let last_button: Button = builder.get_object("last_button")
+    let last_button: Button = builder.object("last_button")
         .expect("Failed to get last_button");
     last_button.connect_clicked(clone!(@strong current_time_entry_buffer,
                                        @weak state_cell => move |_| {
@@ -142,31 +145,31 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
     }));
 
     // Update interval spinbutton setup
-    let update_interval_spinbutton: SpinButton = builder.get_object("update_interval_spinbutton")
+    let update_interval_spinbutton: SpinButton = builder.object("update_interval_spinbutton")
         .expect("Failed to get update_interval_spinbutton");
-    let update_interval_spinbutton_adjustment = update_interval_spinbutton.get_adjustment();
+    let update_interval_spinbutton_adjustment = update_interval_spinbutton.adjustment();
     update_interval_spinbutton_adjustment.connect_value_changed(clone!(@strong update_interval_spinbutton,
                                                                        @weak state_cell => move |_| {
-        let value = update_interval_spinbutton.get_value();
+        let value = update_interval_spinbutton.value();
         state_cell.borrow_mut().update_interval = value as i32;
     }));
 
     // Timestep interval spinbutton setup
-    let timestep_interval_spinbutton: SpinButton = builder.get_object("timestep_interval_spinbutton")
+    let timestep_interval_spinbutton: SpinButton = builder.object("timestep_interval_spinbutton")
         .expect("Failed to get timestep_interval_spinbutton");
-    let timestep_interval_spinbutton_adjustment = timestep_interval_spinbutton.get_adjustment();
+    let timestep_interval_spinbutton_adjustment = timestep_interval_spinbutton.adjustment();
     timestep_interval_spinbutton_adjustment.connect_value_changed(clone!(@strong timestep_interval_spinbutton,
                                                          @weak state_cell => move |_| {
-        let value = timestep_interval_spinbutton.get_value();
+        let value = timestep_interval_spinbutton.value();
         state_cell.borrow_mut().timestep_interval = value as usize;
     }));
 
     // Autoscale toggle setup
-    let autoscale_x_toggle: ToggleButton = builder.get_object("autoscale_x_toggle")
+    let autoscale_x_toggle: ToggleButton = builder.object("autoscale_x_toggle")
         .expect("Failed to get autoscale_x_toggle");
     autoscale_x_toggle.connect_toggled(clone!(@strong autoscale_x_toggle,
                                             @weak state_cell => move |_| {
-        let checked = autoscale_x_toggle.get_active();
+        let checked = autoscale_x_toggle.is_active();
         if checked {
             state_cell.borrow_mut().plot_settings.plot_range_x = PlotRange::Auto;
             state_cell.borrow_mut().update_needed = true;
@@ -178,11 +181,11 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
     autoscale_x_toggle.set_active(true);
 
     // Autoscale toggle setup
-    let autoscale_y_toggle: ToggleButton = builder.get_object("autoscale_y_toggle")
+    let autoscale_y_toggle: ToggleButton = builder.object("autoscale_y_toggle")
         .expect("Failed to get autoscale_y_toggle");
     autoscale_y_toggle.connect_toggled(clone!(@strong autoscale_y_toggle,
                                             @weak state_cell => move |_| {
-        let checked = autoscale_y_toggle.get_active();
+        let checked = autoscale_y_toggle.is_active();
         if checked {
             state_cell.borrow_mut().plot_settings.plot_range_y = PlotRange::Auto;
             state_cell.borrow_mut().update_needed = true;
@@ -194,62 +197,62 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
     autoscale_y_toggle.set_active(true);
 
     // Logscale x toggle setup
-    let logscale_x_toggle: ToggleButton = builder.get_object("logscale_x_toggle")
+    let logscale_x_toggle: ToggleButton = builder.object("logscale_x_toggle")
         .expect("Failed to get logscale_x_toggle");
     logscale_x_toggle.connect_toggled(clone!(@strong logscale_x_toggle,
                                              @weak state_cell => move |_| {
-        state_cell.borrow_mut().plot_settings.use_logscale_x = logscale_x_toggle.get_active();
+        state_cell.borrow_mut().plot_settings.use_logscale_x = logscale_x_toggle.is_active();
         state_cell.borrow_mut().update_needed = true;
     }));
     logscale_x_toggle.set_active(false);
 
     // Logscale y toggle setup
-    let logscale_y_toggle: ToggleButton = builder.get_object("logscale_y_toggle")
+    let logscale_y_toggle: ToggleButton = builder.object("logscale_y_toggle")
         .expect("Failed to get logscale_x_toggle");
     logscale_y_toggle.connect_toggled(clone!(@strong logscale_y_toggle,
                                              @weak state_cell => move |_| {
-        state_cell.borrow_mut().plot_settings.use_logscale_y = logscale_y_toggle.get_active();
+        state_cell.borrow_mut().plot_settings.use_logscale_y = logscale_y_toggle.is_active();
         state_cell.borrow_mut().update_needed = true;
     }));
     logscale_y_toggle.set_active(false);    
 
     // Line toggle setup
-    let line_toggle: ToggleButton = builder.get_object("line_toggle")
+    let line_toggle: ToggleButton = builder.object("line_toggle")
         .expect("Failed to get line_toggle");
     line_toggle.connect_toggled(clone!(@strong line_toggle,
                                        @weak state_cell => move |_| {
-        state_cell.borrow_mut().plot_settings.draw_lines = line_toggle.get_active();
+        state_cell.borrow_mut().plot_settings.draw_lines = line_toggle.is_active();
         state_cell.borrow_mut().update_needed = true;
     }));
     line_toggle.set_active(true);
 
     // Point toggle setup
-    let point_toggle: ToggleButton = builder.get_object("point_toggle")
+    let point_toggle: ToggleButton = builder.object("point_toggle")
         .expect("Failed to get point_toggle");
     point_toggle.connect_toggled(clone!(@strong point_toggle,
                                         @weak state_cell => move |_| {
-        state_cell.borrow_mut().plot_settings.draw_points = point_toggle.get_active();
+        state_cell.borrow_mut().plot_settings.draw_points = point_toggle.is_active();
         state_cell.borrow_mut().update_needed = true;
     }));
     point_toggle.set_active(true);
 
-    let color_toggle: ToggleButton = builder.get_object("color_toggle")
+    let color_toggle: ToggleButton = builder.object("color_toggle")
         .expect("Failed to get color_toggle");
     color_toggle.connect_toggled(clone!(@strong color_toggle,
                                         @weak state_cell => move |_| {
-        state_cell.borrow_mut().plot_settings.use_color = color_toggle.get_active();
+        state_cell.borrow_mut().plot_settings.use_color = color_toggle.is_active();
         state_cell.borrow_mut().update_needed = true;
     }));
     color_toggle.set_active(true);
 
     // x_min entry setup
-    let x_min_entry: Entry = builder.get_object("x_min_entry")
+    let x_min_entry: Entry = builder.object("x_min_entry")
         .expect("Failed to get x_min_entry");
-    let x_min_entry_buffer = x_min_entry.get_buffer();
+    let x_min_entry_buffer = x_min_entry.buffer();
     x_min_entry.connect_activate(clone!(@strong x_min_entry_buffer as buf,
                                         @strong autoscale_x_toggle,
                                         @weak state_cell => move |_| {
-        let text = buf.get_text();
+        let text = buf.text();
         if let Ok(x_min_new) = text.parse::<f64>() {
             let (_x_min, x_max) = match state_cell.borrow().plot_range_x_actual {
                 PlotRange::Fixed(x_range) => x_range,
@@ -262,13 +265,13 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
     }));
 
     // x_max entry setup
-    let x_max_entry: Entry = builder.get_object("x_max_entry")
+    let x_max_entry: Entry = builder.object("x_max_entry")
         .expect("Failed to get x_max_entry");
-    let x_max_entry_buffer = x_max_entry.get_buffer();
+    let x_max_entry_buffer = x_max_entry.buffer();
     x_max_entry.connect_activate(clone!(@strong x_max_entry_buffer as buf,
                                         @strong autoscale_x_toggle,
                                         @weak state_cell => move |_| {
-        let text = buf.get_text();
+        let text = buf.text();
         if let Ok(x_max_new) = text.parse::<f64>() {
             let (x_min, _x_max) = match state_cell.borrow().plot_range_x_actual {
                 PlotRange::Fixed(x_range) => x_range,
@@ -281,13 +284,13 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
     }));
 
     // y_min entry setup
-    let y_min_entry: Entry = builder.get_object("y_min_entry")
+    let y_min_entry: Entry = builder.object("y_min_entry")
         .expect("Failed to get y_min_entry");
-    let y_min_entry_buffer = y_min_entry.get_buffer();
+    let y_min_entry_buffer = y_min_entry.buffer();
     y_min_entry.connect_activate(clone!(@strong y_min_entry_buffer as buf,
                                         @strong autoscale_y_toggle,
                                         @weak state_cell => move |_| {
-        let text = buf.get_text();
+        let text = buf.text();
         if let Ok(y_min_new) = text.parse::<f64>() {
             let (_y_min, y_max) = match state_cell.borrow().plot_range_y_actual {
                 PlotRange::Fixed(y_range) => y_range,
@@ -300,13 +303,13 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
     }));
 
     // y_max entry setup
-    let y_max_entry: Entry = builder.get_object("y_max_entry")
+    let y_max_entry: Entry = builder.object("y_max_entry")
         .expect("Failed to get y_max_entry");
-    let y_max_entry_buffer = y_max_entry.get_buffer();
+    let y_max_entry_buffer = y_max_entry.buffer();
     y_max_entry.connect_activate(clone!(@strong y_max_entry_buffer as buf,
                                         @strong autoscale_y_toggle,
                                         @weak state_cell => move |_| {
-        let text = buf.get_text();
+        let text = buf.text();
         if let Ok(y_max_new) = text.parse::<f64>() {
             let (y_min, _y_max) = match state_cell.borrow().plot_range_y_actual {
                 PlotRange::Fixed(y_range) => y_range,
@@ -319,7 +322,7 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
     }));
 
     // Load button setup
-    let load_button: Button = builder.get_object("load_button")
+    let load_button: Button = builder.object("load_button")
         .expect("Failed to get load_button");
     load_button.connect_clicked(clone!(@strong window,
                                        @weak state_cell => move |_| {
@@ -329,7 +332,7 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
         file_chooser_dialog.set_select_multiple(true);
         file_chooser_dialog.connect_response(move |d,r| {
             if let ResponseType::Accept = r {
-                let filenames = d.get_filenames();
+                let filenames = d.filenames();
                 let filenames: Vec<String> = filenames.iter().map(|pb| pb.as_path().display().to_string()).collect();
                 if let Some(data) = Data::from_files(filenames) {
                     state_cell.borrow_mut().load_data(data);
@@ -341,7 +344,7 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
     }));
 
     // Save button setup
-    let save_plot_button: Button = builder.get_object("save_plot_button")
+    let save_plot_button: Button = builder.object("save_plot_button")
         .expect("Failed to get save_button");
     save_plot_button.connect_clicked(clone!(@strong window,
                                             @weak state_cell => move |_| {
@@ -351,7 +354,7 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
         file_chooser_dialog.add_button("Save", ResponseType::Accept);
         file_chooser_dialog.connect_response(move |d, r| {
             if let ResponseType::Accept = r {
-                if let Some(filename) = d.get_filename() {
+                if let Some(filename) = d.filename() {
                     let filename = filename.as_path().display().to_string();     
                     if let Some(svg_string) = state_cell.borrow().plot_image_string.clone() {
                         std::fs::write(filename, svg_string).expect("Failed to write file");
@@ -364,7 +367,7 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
     }));
 
     // export_gnuplot_button setup
-    let export_gnuplot_button: Button = builder.get_object("export_gnuplot_button")
+    let export_gnuplot_button: Button = builder.object("export_gnuplot_button")
         .expect("Failed to get export_gnuplot_button");
     export_gnuplot_button.connect_clicked(clone!(@strong window,
                                                  @weak state_cell => move |_| {
@@ -373,7 +376,7 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
         file_chooser_dialog.add_button("Save", ResponseType::Accept);
         file_chooser_dialog.connect_response(move |d, r| {
             if let ResponseType::Accept = r {
-                if let Some(filename) = d.get_filename() {
+                if let Some(filename) = d.filename() {
                     let filename = filename.as_path().display().to_string();
                     if let Some(dataslice) = &state_cell.borrow().current_slice {
                         let gnuplot_string = dataslice.to_string_gnuplot();
@@ -395,7 +398,7 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
     let y_min_entry_buffer_clone = y_min_entry_buffer;
     let y_max_entry_buffer_clone = y_max_entry_buffer;
     let plot_image_clone = plot_image;
-    timeout_add(10, move || {
+    timeout_add_local(Duration::from_millis(10), move || {
         
         // Animation of state
         let is_playing = state_clone.borrow().is_playing;

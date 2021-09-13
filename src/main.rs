@@ -4,7 +4,7 @@ mod data;
 mod state;
 
 use glib::{clone};
-use gio::prelude::*;
+use gtk::prelude::*;
 use gtk::{Application};
 use ui::{build_ui};
 
@@ -16,7 +16,7 @@ fn main() {
     let application = Application::new(
         Some("org.muninn"),
         gio::ApplicationFlags::empty(),
-    ).expect("Failed to initialize GTK application");
+    );
     
     let args: Vec<String> = env::args().collect();
 
@@ -34,5 +34,5 @@ fn main() {
         build_ui(app, state_cell);
     }));
 
-    application.run(&[]);
+    application.run();
 }

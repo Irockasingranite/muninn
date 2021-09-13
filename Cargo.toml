@@ -8,15 +8,15 @@ edition = "2018"
 opt-level = 3
 
 [dependencies]
-plotters = "^0.2.14"
-gdk-pixbuf = "0.8.0"
-glib = "0.9.3"
-gdk = "0.12.1"
+plotters = "0.3.1"
+gdk-pixbuf = "0.14.0"
+glib = "0.14.2"
+gdk = "0.14.0"
 
 [dependencies.gtk]
-version = "0.8.1"
+version = "0.14.0"
 features = ["v3_22"]
 
 [dependencies.gio]
-version = "0.8.1"
-features = ["v2_44"]
+version = "0.14.0"
+# features = ["v2_44"]
