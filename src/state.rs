@@ -61,12 +61,6 @@ impl State {
         self.loaded_data = Some(data);
     }
 
-    pub fn from_data(data: Data) -> State {
-        let mut state = State::new();
-        state.load_data(data);
-        state
-    }
-
     pub fn advance_animation(&mut self) {
         let now = Instant::now();
         let time_since_last_step = now.duration_since(self.last_step_made_at);
