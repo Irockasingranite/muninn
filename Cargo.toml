@@ -3,6 +3,7 @@ name = "muninn"
 version = "0.4.3"
 authors = ["Sarah Renkhoff <sarah.renkhoff@gmail.com>"]
 edition = "2018"
+license = "MIT"
 
 [profile.release]
 opt-level = 3
