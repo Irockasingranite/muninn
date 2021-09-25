@@ -141,7 +141,7 @@ fn read_datalines_from_file(filename: &str) -> Result<Vec<(Time, DataLine)>> {
         if line.starts_with('\"') {
             if line.starts_with("\"Time = ") {
                 let time_str = line.get(8..).unwrap();
-                let time = time_str.parse::<f64>().unwrap();
+                let time = time_str.trim_matches('"').parse::<f64>().unwrap();
                 times.push(time);
                 // Begin a new dataline
                 datalines.push(DataLine::new());
