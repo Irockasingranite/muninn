@@ -151,7 +151,9 @@ fn read_datalines_from_file(filename: &str) -> Result<Vec<(Time, DataLine)>> {
             let mut words = line.trim().split_whitespace();
             if let (Ok(x), Ok(y)) = (words.next().unwrap().parse::<f64>(),
                                      words.next().unwrap().parse::<f64>()) {
-                dataline.push((x,y));
+                if !x.is_nan() && !y.is_nan() {
+                    dataline.push((x,y));
+                }
             }
         }
     }
