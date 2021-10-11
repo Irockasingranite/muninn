@@ -148,11 +148,13 @@ fn read_datalines_from_file(filename: &str) -> Result<Vec<(Time, DataLine)>> {
             }
           // Add points to the latest dataline  
         } else if let Some(dataline) = datalines.last_mut() {
-            let mut words = line.trim().split_whitespace();
-            if let (Ok(x), Ok(y)) = (words.next().unwrap().parse::<f64>(),
-                                     words.next().unwrap().parse::<f64>()) {
-                if !x.is_nan() && !y.is_nan() {
-                    dataline.push((x,y));
+            let words: Vec<&str> = line.trim().split_whitespace().collect();
+            if words.len() >= 2 { // ignore malformed lines, e.g. caused by a program being stopped mid-write
+                if let (Ok(x), Ok(y)) = (words[0].parse::<f64>(),
+                                         words[1].parse::<f64>()) {
+                    if !x.is_nan() && !y.is_nan() {
+                        dataline.push((x,y));
+                    }
                 }
             }
         }
