@@ -58,20 +58,32 @@ impl Data {
     }
 
     pub fn from_files(filenames: Vec<String>) -> Option<Data> {
+        use indicatif::{ProgressBar, ProgressStyle};
+        let pb_style = ProgressStyle::default_bar()
+            .template("{msg} [{pos}/{len}] {wide_bar}");
         let mut data = Data::new();
 
         // Collect data from all files, tagged with their time values
+        let progress_bar = ProgressBar::new(filenames.len() as u64)
+            .with_message("Loading files:");
+        progress_bar.set_style(pb_style.clone());
         let mut time_line_pairs = Vec::new();
         for filename in filenames {
             if let Ok(mut pairs) = read_datalines_from_file(&filename) {
                 time_line_pairs.append(&mut pairs);
             }
+            progress_bar.inc(1);
         }
+        progress_bar.finish_with_message("Finished loading files");
 
         // No data in files means no data for structure
         if time_line_pairs.is_empty() {
             return None;
         }
+
+        let progress_bar = ProgressBar::new(time_line_pairs.len() as u64)
+            .with_message("Processing data:");
+        progress_bar.set_style(pb_style.clone());
 
         // Sort all datalines by time
         time_line_pairs.sort_by(|(t1, _), (t2, _)| t1.partial_cmp(t2).unwrap());
@@ -99,7 +111,9 @@ impl Data {
                     datalines: vec![l]
                 });
             }
+            progress_bar.inc(1);
         }
+        progress_bar.finish_with_message("Finished processing data");
 
         if data.dataslices.is_empty() {
             None
