@@ -26,6 +26,14 @@ impl DataSlice {
 
         gnuplot_string
     }
+
+    pub fn sort(&mut self) {
+        self.datalines.sort_by(|a, b| {
+            let min_a = a.iter().min_by(|(x1, _), (x2, _)| x1.partial_cmp(x2).unwrap());
+            let min_b = b.iter().min_by(|(x1, _), (x2, _)| x1.partial_cmp(x2).unwrap());
+            min_a.partial_cmp(&min_b).unwrap()
+        });
+    }
 }
 
 #[derive(Debug)]
@@ -113,6 +121,11 @@ impl Data {
             }
             progress_bar.inc(1);
         }
+
+        for slice in data.dataslices.iter_mut() {
+            slice.sort();
+        }
+
         progress_bar.finish_with_message("Finished processing data");
 
         if data.dataslices.is_empty() {
