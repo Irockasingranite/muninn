@@ -10,15 +10,15 @@ opt-level = 3
 
 [dependencies]
 plotters = "0.3.1"
-gdk-pixbuf = "0.14.0"
-glib = "0.14.2"
-gdk = "0.14.0"
+gdk-pixbuf = "0.15.4"
+glib = "0.15.5"
+gdk = "0.15.2"
 indicatif = "0.16.2"
 
 [dependencies.gtk]
-version = "0.14.0"
+version = "0.15.3"
 features = ["v3_22"]
 
 [dependencies.gio]
-version = "0.14.0"
+version = "0.15.5"
 # features = ["v2_44"]

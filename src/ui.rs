@@ -161,8 +161,8 @@ fn setup_plot_image(builder: Builder, state_cell: Rc<RefCell<State>>) -> gtk::Im
     let plot_image_viewport: Viewport = builder.object("plot_image_viewport")
         .expect("Failed to get plot_image_viewport");
     plot_image_viewport.connect_size_allocate(clone!(@weak state_cell => move |_, allocation| {
-        let width = allocation.width as u32;
-        let height = allocation.height as u32;
+        let width = allocation.width() as u32;
+        let height = allocation.height() as u32;
         let (current_width, current_height) = state_cell.borrow().plot_image_size;
         if (width, height) != (current_width, current_height) {
             state_cell.borrow_mut().plot_image_size = (width, height);
