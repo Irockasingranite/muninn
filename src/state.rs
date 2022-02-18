@@ -2,7 +2,6 @@ use crate::data::{Data, DataSlice};
 use crate::plotting::{PlotRange, PlotSettings};
 use std::time::{Instant};
 
-#[derive(Clone)]
 pub struct State {
     pub current_step: usize, // currently displayed timestep
     pub current_time: f64, // time value of displayed timestep
@@ -15,7 +14,6 @@ pub struct State {
     pub is_playing: bool, // Whether the plot is being animated
     last_step_made_at: Instant, // time when last frame was rendered
     pub update_needed: bool, // whether the current image needs to be updated
-    // pub plot_range_setting: PlotRange,
     pub plot_settings: PlotSettings,
     pub plot_range_x_actual: PlotRange,
     pub plot_range_y_actual: PlotRange,
