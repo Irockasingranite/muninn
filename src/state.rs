@@ -1,6 +1,13 @@
 use crate::data::{Data, DataSlice};
 use crate::plotting::{PlotRange, PlotSettings};
 use std::time::{Instant};
+use std::sync::{Arc, Mutex};
+
+pub enum PlotStatus {
+    Idle,
+    Working,
+    Finished(Option<(String, (PlotRange, PlotRange))>),
+}
 
 pub struct State {
     pub current_step: usize, // currently displayed timestep
@@ -153,32 +160,27 @@ impl State {
         self.go_to_step(target_step)
     }
 
-    pub fn update_plot(&mut self) -> Option<(String, (PlotRange, PlotRange))> {
+    pub fn request_plot(&mut self, status_mutex: Arc<Mutex<PlotStatus>>) -> bool {
         use crate::plotting::{plot_data_slice_to_svg};
         if let Some(d) = &self.loaded_data {
-            let (svg_string, ranges): (String, (PlotRange, PlotRange)) = match &self.current_slice {
+            let s = match &self.current_slice {
                 None => {
-                    let s = d.at_time(self.current_time);
-                    let (string, ranges) = plot_data_slice_to_svg(&s, &self.plot_settings, &self.plot_image_size);
-                    self.current_slice = Some(s);
-                    self.update_needed = false;
-                    let (x_range, y_range) = ranges;
-                    self.plot_range_x_actual = x_range;
-                    self.plot_range_y_actual = y_range;
-                    (string, ranges)
+                    d.at_time(self.current_time)
                 },
-                Some(s) => {
-                    self.update_needed = false;
-                    let (string, ranges) = plot_data_slice_to_svg(&s, &self.plot_settings, &self.plot_image_size);
-                    let (x_range, y_range) = ranges;
-                    self.plot_range_x_actual = x_range;
-                    self.plot_range_y_actual = y_range;
-                    (string, ranges)
-                },
+                Some(s) => s.clone()
             };
-            self.plot_image_string = Some(svg_string.clone());
-            return Some((svg_string, ranges));
+
+            let settings = self.plot_settings.clone();
+            let size = self.plot_image_size.clone();
+
+            rayon::spawn(move || {
+                let mut status_locked = status_mutex.lock().unwrap();
+                *status_locked = PlotStatus::Working;
+                let (string, ranges) = plot_data_slice_to_svg(&s, &settings, &size);
+                *status_locked = PlotStatus::Finished(Some((string, ranges)));
+            });
+            return true;
         }
-        None
+        false
     }
 }

@@ -1,6 +1,6 @@
 [package]
 name = "muninn"
-version = "0.5.1"
+version = "1.0.0"
 authors = ["Sarah Renkhoff <sarah.renkhoff@gmail.com>"]
 edition = "2018"
 license = "MIT"
@@ -14,6 +14,7 @@ gdk-pixbuf = "0.15.4"
 glib = "0.15.5"
 gdk = "0.15.2"
 indicatif = "0.16.2"
+rayon = "1.5.1"
 
 [dependencies.gtk]
 version = "0.15.3"

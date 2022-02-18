@@ -1,5 +1,6 @@
 use glib::timeout_add_local;
 use std::time::Duration;
+use std::sync::{Arc, Mutex};
 
 use gtk::{Application, ApplicationWindow, Builder, Button, Entry, EventBox, FileChooserDialog, Image, SpinButton, ToggleButton, Viewport};
 use gtk::ResponseType;
@@ -8,9 +9,10 @@ use std::rc::{Rc};
 use std::cell::{RefCell};
 use glib::{clone};
 
-use crate::state::{State};
+use crate::state::{State, PlotStatus};
 use crate::data::{Data};
 use crate::plotting::{PlotRange};
+
 
 use gdk_pixbuf::{Pixbuf, PixbufLoader};
 fn pixbuf_from_string(s: &str) -> Pixbuf {
@@ -70,75 +72,103 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
     let _export_gnuplot_button = setup_export_gnuplot_button(builder.clone(), state_cell.clone(), window.clone());
 
     // Custom update routine (called every 10 ms)
+    let status_mutex = Arc::new(Mutex::new(PlotStatus::Idle));
     let state_clone = state_cell;
-    let current_time_entry_buffer_clone = current_time_entry.buffer();
-    let x_min_entry_buffer_clone = x_min_entry.buffer();
-    let x_max_entry_buffer_clone = x_max_entry.buffer();
-    let y_min_entry_buffer_clone = y_min_entry.buffer();
-    let y_max_entry_buffer_clone = y_max_entry.buffer();
+    let time_entry_clone = current_time_entry;
+    let x_min_entry_clone = x_min_entry;
+    let x_max_entry_clone = x_max_entry;
+    let y_min_entry_clone = y_min_entry;
+    let y_max_entry_clone = y_max_entry;
     let plot_image_clone = plot_image;
     timeout_add_local(Duration::from_millis(10), move || {
-        
-        // Animation of state
-        let is_playing = state_clone.borrow().is_playing;
-        if is_playing {
-            state_clone.borrow_mut().advance_animation();
-            let time = state_clone.borrow().current_time;
-            current_time_entry_buffer_clone.set_text(format!("{:.3}", time).as_str());
-        }
 
-        // Update plot if necessary
-        let update_needed = state_clone.borrow().update_needed;
-        if update_needed {
-            let svg_string = state_clone.borrow_mut().update_plot();
-            if let Some((s, r)) = svg_string {
-                // Update the plot itself
-                let buf = pixbuf_from_string(&s);
-                plot_image_clone.set_from_pixbuf(Some(&buf));
+        // Depending on the plotting status, do different things
+        let mut status_locked = status_mutex.lock().unwrap();
+        match &*status_locked {
+            PlotStatus::Working => {
+                // If a plot is currently in the making, don't do anything
+                return Continue(true);
+            },
+            PlotStatus::Finished(svg_string_option) => {
+                // If a new plot has been finished, show it
+                if let Some((s, r)) = svg_string_option {
+                    // Update the plot itself
+                    let buf = pixbuf_from_string(&s);
+                    plot_image_clone.set_from_pixbuf(Some(&buf));
 
-                // Update range entries
-                let (plot_range_x, plot_range_y) = r;
-                let (x_min, x_max) = match plot_range_x {
-                    PlotRange::Fixed(x_range) => x_range,
-                    PlotRange::Auto => (0.0, 1.0),
-                };
-                let (y_min, y_max) = match plot_range_y {
-                    PlotRange::Fixed(y_range) => y_range,
-                    PlotRange::Auto => (0.0, 1.0),
-                };
+                    // Update range entries
+                    let (plot_range_x, plot_range_y) = r;
+                    let (x_min, x_max) = match plot_range_x {
+                        PlotRange::Fixed(x_range) => x_range.clone(),
+                        PlotRange::Auto => (0.0, 1.0),
+                    };
+                    let (y_min, y_max) = match plot_range_y {
+                        PlotRange::Fixed(y_range) => y_range.clone(),
+                        PlotRange::Auto => (0.0, 1.0),
+                    };
 
-                // Pick formatting depending on the actual value
-                // switch to scientific notation for small and large values
-                let x_min_entry_text = if (x_min.abs() < 1.0e-3  || x_min.abs() > 1.0e3) && x_min != 0.0 {
-                    format!("{:.3e}", x_min)
-                } else {
-                    format!("{:.3}", x_min)
-                };
+                    // Pick formatting depending on the actual value
+                    // switch to scientific notation for small and large values
+                    let x_min_entry_text = if (x_min.abs() < 1.0e-3  || x_min.abs() > 1.0e3) && x_min != 0.0 {
+                        format!("{:.3e}", x_min)
+                    } else {
+                        format!("{:.3}", x_min)
+                    };
 
-                let x_max_entry_text = if (x_max.abs() < 1.0e-3  || x_max.abs() > 1.0e3) && x_max != 0.0 {
-                    format!("{:.3e}", x_max)
-                } else {
-                    format!("{:.3}", x_max)
-                };
+                    let x_max_entry_text = if (x_max.abs() < 1.0e-3  || x_max.abs() > 1.0e3) && x_max != 0.0 {
+                        format!("{:.3e}", x_max)
+                    } else {
+                        format!("{:.3}", x_max)
+                    };
 
-                let y_min_entry_text = if (y_min.abs() < 1.0e-3  || y_min.abs() > 1.0e3) && y_min != 0.0 {
-                    format!("{:.3e}", y_min)
-                } else {
-                    format!("{:.3}", y_min)
-                };
+                    let y_min_entry_text = if (y_min.abs() < 1.0e-3  || y_min.abs() > 1.0e3) && y_min != 0.0 {
+                        format!("{:.3e}", y_min)
+                    } else {
+                        format!("{:.3}", y_min)
+                    };
 
-                let y_max_entry_text = if (y_max.abs() < 1.0e-3  || y_max.abs() > 1.0e3) && y_max != 0.0 {
-                    format!("{:.3e}", y_max)
-                } else {
-                    format!("{:.3}", y_max)
-                };
+                    let y_max_entry_text = if (y_max.abs() < 1.0e-3  || y_max.abs() > 1.0e3) && y_max != 0.0 {
+                        format!("{:.3e}", y_max)
+                    } else {
+                        format!("{:.3}", y_max)
+                    };
 
-                x_min_entry_buffer_clone.set_text(x_min_entry_text.as_str());
-                x_max_entry_buffer_clone.set_text(x_max_entry_text.as_str());
-                y_min_entry_buffer_clone.set_text(y_min_entry_text.as_str());
-                y_max_entry_buffer_clone.set_text(y_max_entry_text.as_str());
+                    x_min_entry_clone.buffer().set_text(x_min_entry_text.as_str());
+                    x_max_entry_clone.buffer().set_text(x_max_entry_text.as_str());
+                    y_min_entry_clone.buffer().set_text(y_min_entry_text.as_str());
+                    y_max_entry_clone.buffer().set_text(y_max_entry_text.as_str());
+                    
+                    // Also update state based on results of plot generation
+                    state_clone.borrow_mut().plot_image_string = Some(s.clone());
+                    state_clone.borrow_mut().plot_range_x_actual = *plot_range_x;
+                    state_clone.borrow_mut().plot_range_y_actual = *plot_range_y;
+                    state_clone.borrow_mut().update_needed = false;
+                }
+
+                // Reset plot status
+                *status_locked = PlotStatus::Idle;
+            },
+            PlotStatus::Idle => {
+                // If no plot is being worked on, advance the animation
+                let is_playing = state_clone.borrow().is_playing;
+                if is_playing {
+                    state_clone.borrow_mut().advance_animation();
+                    let time = state_clone.borrow().current_time;
+                    time_entry_clone.buffer().set_text(format!("{:.3}", time).as_str());
+                }
+
+                // If a new plot is needed, spawn a task to create it
+                let update_needed = state_clone.borrow().update_needed;
+                if update_needed {
+                    *status_locked = PlotStatus::Working;
+                    let plotting = state_clone.borrow_mut().request_plot(Arc::clone(&status_mutex));
+                    // If no data is loaded, no plotting task was created
+                    if !plotting {
+                        *status_locked = PlotStatus::Idle;
+                    }
+                }
+
             }
-
         }
 
         Continue(true)
