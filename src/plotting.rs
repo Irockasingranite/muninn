@@ -185,17 +185,32 @@ pub fn plot_data_slice_to_svg(data_slice: &DataSlice, plot_settings: &PlotSettin
                 }
             }
 
-            let xmin = if !xmins.is_empty() {
+            let mut xmin = if !xmins.is_empty() {
                 *xmins.iter().min_by(|x, y| x.partial_cmp(y).unwrap()).unwrap()
             } else {
                 0.0
             };
-            let xmax = if !xmaxs.is_empty() {
+            let mut xmax = if !xmaxs.is_empty() {
                 *xmaxs.iter().max_by(|x, y| x.partial_cmp(y).unwrap()).unwrap()
             } else {
                 0.0
             };
 
+            // Apply padding
+
+            if plot_settings.use_logscale_x {
+                if xmin <= 0.0 {
+                    xmin = 1.0e-10;
+                }
+                let dx = xmax.log(10.0) - xmin.log(10.0);
+                xmin = 10.0_f64.powf(xmin.log(10.0) - x_padding * dx);
+                xmax = 10.0_f64.powf(xmax.log(10.0) + x_padding * dx);
+            } else {
+                let dx = xmax - xmin;
+                xmin -= x_padding * dx;
+                xmax += x_padding * dx;
+            }
+            
             (xmin, xmax)
         }
     };
@@ -210,49 +225,40 @@ pub fn plot_data_slice_to_svg(data_slice: &DataSlice, plot_settings: &PlotSettin
                 points.extend(series.iter().filter(|(x, _y)| x >= &xmin && x <= &xmax ));
             }
 
-            let ymin = if !points.is_empty() {
+            let mut ymin = if !points.is_empty() {
                 points.iter().min_by(|(_,y1),(_,y2)| y1.partial_cmp(y2).unwrap()).unwrap().1
             } else {
                 0.0
             };
-            let ymax = if !points.is_empty() {
+            let mut ymax = if !points.is_empty() {
                 points.iter().max_by(|(_,y1),(_,y2)| y1.partial_cmp(y2).unwrap()).unwrap().1
             } else {
                 0.0
             };
 
+            // Apply padding
+            if plot_settings.use_logscale_y {
+                if ymin <= 0.0 {
+                    ymin = 1.0e-10;
+                }
+                let dy = ymax.log(10.0) - ymin.log(10.0);
+                ymin = 10.0_f64.powf(ymin.log(10.0) - y_padding * dy);
+                ymax = 10.0_f64.powf(ymax.log(10.0) + y_padding * dy);
+            } else {
+                let dy = ymax - ymin;
+                ymin -= y_padding * dy;
+                ymax += y_padding * dy;
+            }
+
             (ymin, ymax)
         }
     };
 
-    if plot_settings.use_logscale_x {
-        if xmin <= 0.0 {
-            xmin = 1.0e-10;
-        }
-        let dx = xmax.log(10.0) - xmin.log(10.0);
-        xmin = 10.0_f64.powf(xmin.log(10.0) - x_padding * dx);
-        xmax = 10.0_f64.powf(xmax.log(10.0) + x_padding * dx);
-    } else {
-        let dx = xmax - xmin;
-        xmin -= x_padding * dx;
-        xmax += x_padding * dx;
-    }
-
+    
+    // Set finite default ranges
     if xmax == xmin {
         xmin -= 0.05;
         xmax += 0.05;
-    }
-    if plot_settings.use_logscale_y {
-        if ymin <= 0.0 {
-            ymin = 1.0e-10;
-        }
-        let dy = ymax.log(10.0) - ymin.log(10.0);
-        ymin = 10.0_f64.powf(ymin.log(10.0) - y_padding * dy);
-        ymax = 10.0_f64.powf(ymax.log(10.0) + y_padding * dy);
-    } else {
-        let dy = ymax - ymin;
-        ymin -= y_padding * dy;
-        ymax += y_padding * dy;
     }
 
     if ymax == ymin {
