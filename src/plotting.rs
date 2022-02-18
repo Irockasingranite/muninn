@@ -1,6 +1,7 @@
 use crate::data::{DataSlice, Point};
 
 use plotters::prelude::*;
+use rayon::prelude::*;
 
 pub type Range = (f64, f64);
 
@@ -180,18 +181,18 @@ pub fn plot_data_slice_to_svg(data_slice: &DataSlice, plot_settings: &PlotSettin
             let mut xmins = Vec::new();
             for series in data {
                 if !series.is_empty() {
-                    xmaxs.push(series.iter().max_by(|(x1,_),(x2,_)| x1.partial_cmp(x2).unwrap()).unwrap().0);
-                    xmins.push(series.iter().min_by(|(x1,_),(x2,_)| x1.partial_cmp(x2).unwrap()).unwrap().0);
+                    xmaxs.push(series.par_iter().max_by(|(x1,_),(x2,_)| x1.partial_cmp(x2).unwrap()).unwrap().0);
+                    xmins.push(series.par_iter().min_by(|(x1,_),(x2,_)| x1.partial_cmp(x2).unwrap()).unwrap().0);
                 }
             }
 
             let mut xmin = if !xmins.is_empty() {
-                *xmins.iter().min_by(|x, y| x.partial_cmp(y).unwrap()).unwrap()
+                *xmins.par_iter().min_by(|x, y| x.partial_cmp(y).unwrap()).unwrap()
             } else {
                 0.0
             };
             let mut xmax = if !xmaxs.is_empty() {
-                *xmaxs.iter().max_by(|x, y| x.partial_cmp(y).unwrap()).unwrap()
+                *xmaxs.par_iter().max_by(|x, y| x.partial_cmp(y).unwrap()).unwrap()
             } else {
                 0.0
             };
@@ -226,12 +227,12 @@ pub fn plot_data_slice_to_svg(data_slice: &DataSlice, plot_settings: &PlotSettin
             }
 
             let mut ymin = if !points.is_empty() {
-                points.iter().min_by(|(_,y1),(_,y2)| y1.partial_cmp(y2).unwrap()).unwrap().1
+                points.par_iter().min_by(|(_,y1),(_,y2)| y1.partial_cmp(y2).unwrap()).unwrap().1
             } else {
                 0.0
             };
             let mut ymax = if !points.is_empty() {
-                points.iter().max_by(|(_,y1),(_,y2)| y1.partial_cmp(y2).unwrap()).unwrap().1
+                points.par_iter().max_by(|(_,y1),(_,y2)| y1.partial_cmp(y2).unwrap()).unwrap().1
             } else {
                 0.0
             };
@@ -273,23 +274,16 @@ pub fn plot_data_slice_to_svg(data_slice: &DataSlice, plot_settings: &PlotSettin
     // For line series: Move last and first points along connecting lines
     //                  to coincide with plotting area border    
 
-    let mut point_data: Vec<Vec<Point>> = Vec::new();
-    if plot_settings.draw_points {
-        for line in data {
-            let filtered_line: Vec<Point> = line.iter().filter(|(x,y)| {
-                *x >= xmin && *x <= xmax && *y >= ymin && *y <= ymax
-            }).copied().collect();
-            point_data.push(filtered_line);
-        }
-    }
+    let point_data: Vec<Vec<Point>> = data.par_iter().map(|line| {
+            line.par_iter().filter(|(x,y)| {
+                    *x >= xmin && *x <= xmax && *y >= ymin && *y <= ymax
+                }).copied().collect()
+        }).collect();
 
-    let mut line_data: Vec<Vec<Vec<Point>>> = Vec::new();
-    if plot_settings.draw_lines {
-        for line in data.iter() {
-            let filtered_line = truncate_line(&line, &(xmin, xmax), &(ymin, ymax));
-            line_data.push(filtered_line);
-        }
-    }
+    // Line data is another vec deeper because the filtering may turn one dataline into several, all of which should have the same color
+    let line_data: Vec<Vec<Vec<Point>>> = data.par_iter().map(|line| {
+        truncate_line(&line, &(xmin, xmax), &(ymin, ymax))
+    }).collect();
 
     let x_range = xmin..xmax;
     let y_range = ymin..ymax;
