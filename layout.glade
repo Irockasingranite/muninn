@@ -190,7 +190,7 @@
     <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="update_interval_adjustment">
-    <property name="lower">20</property>
+    <property name="lower">10</property>
     <property name="upper">10000</property>
     <property name="value">100</property>
     <property name="step-increment">100</property>
@@ -414,7 +414,7 @@
                 <property name="adjustment">update_interval_adjustment</property>
                 <property name="climb-rate">0.10</property>
                 <property name="numeric">True</property>
-                <property name="value">150</property>
+                <property name="value">100</property>
               </object>
               <packing>
                 <property name="expand">False</property>
