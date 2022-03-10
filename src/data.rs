@@ -136,7 +136,7 @@ impl Data {
     }
 
     pub fn at_time(&self, time: Time) -> DataSlice {
-        let index_option = self.dataslices.iter().position(|s| s.time > time);
+        let index_option = self.dataslices.iter().position(|s| s.time >= time);
         if let Some(index) = index_option {
             self.dataslices[index as usize].clone()
         } else {
