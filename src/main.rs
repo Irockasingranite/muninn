@@ -12,9 +12,13 @@ use std::cell::{RefCell};
 use std::rc::{Rc};
 
 fn main() {
+    let mut flags = gio::ApplicationFlags::empty();
+    flags.set(gio::ApplicationFlags::HANDLES_OPEN, true);
+    flags.set(gio::ApplicationFlags::NON_UNIQUE, true);
+
     let application = Application::new(
         Some("org.muninn"),
-        gio::ApplicationFlags::HANDLES_OPEN,
+        flags,
     );
 
     use state::{State};
