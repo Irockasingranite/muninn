@@ -174,9 +174,12 @@ impl State {
             let size = self.plot_image_size.clone();
 
             rayon::spawn(move || {
-                let mut status_locked = status_mutex.lock().unwrap();
-                *status_locked = PlotStatus::Working;
+                {
+                    let mut status_locked = status_mutex.lock().unwrap();
+                    *status_locked = PlotStatus::Working;
+                }
                 let (string, ranges) = plot_data_slice_to_svg(&s, &settings, &size);
+                let mut status_locked = status_mutex.lock().unwrap();
                 *status_locked = PlotStatus::Finished(Some((string, ranges)));
             });
             return true;
