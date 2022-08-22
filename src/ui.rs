@@ -5,13 +5,13 @@ use std::sync::{Arc, Mutex};
 use gtk::{Application, ApplicationWindow, Builder, Button, Entry, EventBox, FileChooserDialog, Image, SpinButton, ToggleButton, Viewport};
 use gtk::ResponseType;
 use gtk::prelude::*;
-use std::rc::{Rc};
-use std::cell::{RefCell};
-use glib::{clone};
+use std::rc::Rc;
+use std::cell::RefCell;
+use glib::clone;
 
 use crate::state::{State, PlotStatus};
-use crate::data::{Data};
-use crate::plotting::{PlotRange};
+use crate::data::Data;
+use crate::plotting::PlotRange;
 
 
 use gdk_pixbuf::{Pixbuf, PixbufLoader};

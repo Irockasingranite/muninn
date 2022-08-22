@@ -1,6 +1,6 @@
 use crate::data::{Data, DataSlice};
 use crate::plotting::{PlotRange, PlotSettings};
-use std::time::{Instant};
+use std::time::Instant;
 use std::sync::{Arc, Mutex};
 
 pub enum PlotStatus {
@@ -161,7 +161,7 @@ impl State {
     }
 
     pub fn request_plot(&mut self, status_mutex: Arc<Mutex<PlotStatus>>) -> bool {
-        use crate::plotting::{plot_data_slice_to_svg};
+        use crate::plotting::plot_data_slice_to_svg;
         if let Some(d) = &self.loaded_data {
             let s = match &self.current_slice {
                 None => {
