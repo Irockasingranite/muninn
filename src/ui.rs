@@ -31,6 +31,8 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
     let window: ApplicationWindow = builder.object("main_app_window")
         .expect("Failed to get appWindow");
     window.set_application(Some(application));
+    window.set_default_width(1200);
+    window.set_default_height(800);
 
     // Plot Image setup
     let plot_image = setup_plot_image(builder.clone(), state_cell.clone());
