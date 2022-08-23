@@ -605,9 +605,19 @@ fn update_ranges(x_min_entry: &Entry,
 
     let y_range_new = PlotRange::Fixed((y_min_new, y_max_new));
 
+    let x_min_old_text = format!("{:.3}", x_min_old);
+    let x_max_old_text = format!("{:.3}", x_max_old);
+    let y_min_old_text = format!("{:.3}", y_min_old);
+    let y_max_old_text = format!("{:.3}", y_max_old);
 
-    x_toggle.set_active(false);
-    y_toggle.set_active(false);
+    let x_changed = (x_min_text != x_min_old_text) || (x_max_text != x_max_old_text);
+    let y_changed = (y_min_text != y_min_old_text) || (y_max_text != y_max_old_text);
+
+    println!("x_changed = {}", x_changed);
+    println!("y_changed = {}", y_changed);
+
+    x_toggle.set_active(!x_changed);
+    y_toggle.set_active(!y_changed);
 
     state_cell.borrow_mut().plot_settings.plot_range_x = x_range_new;
     state_cell.borrow_mut().plot_settings.plot_range_y = y_range_new;
