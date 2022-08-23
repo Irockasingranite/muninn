@@ -3,13 +3,13 @@ mod ui;
 mod data;
 mod state;
 
-use glib::{clone};
+use glib::clone;
 use gtk::prelude::*;
-use gtk::{Application};
-use ui::{build_ui};
+use gtk::Application;
+use ui::build_ui;
 
-use std::cell::{RefCell};
-use std::rc::{Rc};
+use std::cell::RefCell;
+use std::rc::Rc;
 
 fn main() {
     let mut flags = gio::ApplicationFlags::empty();
@@ -21,7 +21,7 @@ fn main() {
         flags,
     );
 
-    use state::{State};
+    use state::State;
     let state = State::new();
 
     let state_cell = Rc::new(RefCell::new(state));
@@ -29,7 +29,7 @@ fn main() {
         build_ui(app, state_cell);
     }));
 
-    use data::{Data};
+    use data::Data;
     application.connect_open(clone!(@weak state_cell => move |app, files, _hint| {
         let mut filenames = Vec::new();
         for file in files {
