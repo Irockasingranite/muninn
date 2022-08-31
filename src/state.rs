@@ -2,6 +2,7 @@ use crate::data::{Data, DataSlice};
 use crate::plotting::{PlotRange, PlotSettings};
 use std::time::Instant;
 use std::sync::{Arc, Mutex};
+use gdk_pixbuf::Pixbuf;
 
 pub enum PlotStatus {
     Idle,
@@ -24,8 +25,9 @@ pub struct State {
     pub plot_settings: PlotSettings,
     pub plot_range_x_actual: PlotRange,
     pub plot_range_y_actual: PlotRange,
-    pub plot_image_size: (u32, u32),
+    pub plot_area_size: (u32, u32),
     pub plot_image_string: Option<String>,
+    pub plot_image_pixbuf: Option<Pixbuf>,
 }
 
 impl State {
@@ -46,8 +48,9 @@ impl State {
             plot_settings: PlotSettings::new(),
             plot_range_x_actual: PlotRange::Auto,
             plot_range_y_actual: PlotRange::Auto,
-            plot_image_size: (600,400),
+            plot_area_size: (600,400),
             plot_image_string: None,
+            plot_image_pixbuf: None,
         }
     }
 
@@ -171,7 +174,7 @@ impl State {
             };
 
             let settings = self.plot_settings.clone();
-            let size = self.plot_image_size.clone();
+            let size = self.plot_area_size.clone();
 
             rayon::spawn(move || {
                 {

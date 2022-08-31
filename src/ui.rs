@@ -2,7 +2,7 @@ use glib::timeout_add_local;
 use std::time::Duration;
 use std::sync::{Arc, Mutex};
 
-use gtk::{Application, ApplicationWindow, Builder, Button, Entry, EventBox, FileChooserDialog, Image, SpinButton, ToggleButton, Viewport};
+use gtk::{Application, ApplicationWindow, Builder, Button, DrawingArea, Entry, EventBox, FileChooserDialog, Image, SpinButton, ToggleButton, Viewport};
 use gtk::ResponseType;
 use gtk::prelude::*;
 use std::rc::Rc;
@@ -35,7 +35,7 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
     window.set_default_height(800);
 
     // Plot Image setup
-    let plot_image = setup_plot_image(builder.clone(), state_cell.clone());
+    let plot_area = setup_plot_area(builder.clone(), state_cell.clone());
 
     // Play/Pause button setup
     let _play_pause_button = setup_play_pause_button(builder.clone(), state_cell.clone());
@@ -81,7 +81,7 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
     let x_max_entry_clone = x_max_entry;
     let y_min_entry_clone = y_min_entry;
     let y_max_entry_clone = y_max_entry;
-    let plot_image_clone = plot_image;
+    let plot_area_clone = plot_area.clone();
     timeout_add_local(Duration::from_millis(10), move || {
 
         // Depending on the plotting status, do different things
@@ -96,7 +96,7 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
                 if let Some((s, r)) = svg_string_option {
                     // Update the plot itself
                     let buf = pixbuf_from_string(&s);
-                    plot_image_clone.set_from_pixbuf(Some(&buf));
+                    state_clone.borrow_mut().plot_image_pixbuf = Some(buf.clone());
 
                     // Update range entries
                     let (plot_range_x, plot_range_y) = r;
@@ -145,6 +145,9 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
                     state_clone.borrow_mut().plot_range_x_actual = *plot_range_x;
                     state_clone.borrow_mut().plot_range_y_actual = *plot_range_y;
                     state_clone.borrow_mut().update_needed = false;
+
+                    // Redraw the plot itself
+                    plot_area_clone.queue_draw();
                 }
 
                 // Reset plot status
@@ -179,30 +182,45 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
     window.show_all();
 }
 
-fn setup_plot_image(builder: Builder, state_cell: Rc<RefCell<State>>) -> gtk::Image {
-    let plot_image: Image = builder.object("plot_image")
-        .expect("Failed to get plot_image");
-    let plot_image_event_box: EventBox = builder.object("plot_image_event_box")
-        .expect("Failed to get plot_image_event_box");
-    plot_image_event_box.add_events(gdk::EventMask::SCROLL_MASK);
-    plot_image_event_box.connect_scroll_event(move |_, event| {
+fn setup_plot_area(builder: Builder, state_cell: Rc<RefCell<State>>) -> gtk::DrawingArea {
+    let plot_area: DrawingArea = builder.object("plot_area")
+        .expect("Failed to get plot_area");
+
+    let state_cell_clone = state_cell.clone();
+    plot_area.connect_draw(move |_, cr| {
+        if let Some(buf) = &state_cell_clone.borrow().plot_image_pixbuf {
+            cr.set_source_pixbuf(&buf, 0.0, 0.0);
+        }
+        match cr.paint() {
+            Err(e) => println!("{:?}", e),
+            _ => ()
+        }
+        gtk::Inhibit(false)
+    });
+
+    let plot_area_event_box: EventBox = builder.object("plot_area_event_box")
+        .expect("Failed to get plot_area_event_box");
+
+    plot_area_event_box.add_events(gdk::EventMask::SCROLL_MASK);
+    plot_area_event_box.connect_scroll_event(move |_, event| {
         let (_x, _y) = event.position();
         // println!("scroll at ({}, {})!", x, y);
         Inhibit(false)
     });
-    let plot_image_viewport: Viewport = builder.object("plot_image_viewport")
-        .expect("Failed to get plot_image_viewport");
-    plot_image_viewport.connect_size_allocate(clone!(@weak state_cell => move |_, allocation| {
+
+    let plot_area_viewport: Viewport = builder.object("plot_area_viewport")
+        .expect("Failed to get plot_area_viewport");
+    plot_area_viewport.connect_size_allocate(clone!(@weak state_cell => move |_, allocation| {
         let width = allocation.width() as u32;
         let height = allocation.height() as u32;
-        let (current_width, current_height) = state_cell.borrow().plot_image_size;
+        let (current_width, current_height) = state_cell.borrow().plot_area_size;
         if (width, height) != (current_width, current_height) {
-            state_cell.borrow_mut().plot_image_size = (width, height);
+            state_cell.borrow_mut().plot_area_size = (width, height);
             state_cell.borrow_mut().update_needed = true;
         }
     }));
 
-    plot_image
+    plot_area
 }
 
 fn setup_play_pause_button(builder: Builder, state_cell: Rc<RefCell<State>>) -> Button {
