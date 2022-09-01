@@ -216,6 +216,9 @@ fn setup_plot_area(builder: Builder, state_cell: Rc<RefCell<State>>) -> gtk::Dra
             state_cell.borrow_mut().mouse_state.left_button_held = true;
             state_cell.borrow_mut().mouse_state.drag_start = event.position();
             plot_area.queue_draw();
+        } else if event.button() == 2 || event.button() == 3 { // Middle or Right Mouse Button
+            state_cell.borrow_mut().mouse_state.middle_right_button_held = true;
+            state_cell.borrow_mut().mouse_state.drag_start = event.position();
         }
 
         Inhibit(false)
@@ -275,6 +278,8 @@ fn setup_plot_area(builder: Builder, state_cell: Rc<RefCell<State>>) -> gtk::Dra
                 // Make sure a new plot is rendered
                 state_cell.borrow_mut().update_needed = true;
             }
+        } else if event.button() == 2 || event.button() == 3 { // Middle or Right Mouse Button
+            state_cell.borrow_mut().mouse_state.middle_right_button_held = false;
         }
 
         Inhibit(false)
@@ -283,9 +288,55 @@ fn setup_plot_area(builder: Builder, state_cell: Rc<RefCell<State>>) -> gtk::Dra
     // Handle mouse movement
     plot_area_event_box.add_events(gdk::EventMask::POINTER_MOTION_MASK);
     plot_area_event_box.connect_motion_notify_event(clone!(@strong state_cell,
-                                                           @strong plot_area => move |_, event| {
+                                                            @strong plot_area,
+                                                            @strong x_min_entry,
+                                                            @strong x_max_entry,
+                                                            @strong y_min_entry,
+                                                            @strong y_max_entry,
+                                                            @strong autoscale_x_toggle,
+                                                            @strong autoscale_y_toggle => move |_, event| {
+        
         state_cell.borrow_mut().mouse_state.position = event.position();
-        plot_area.queue_draw();
+        
+        // Update selection rectangle
+        if state_cell.borrow().mouse_state.left_button_held {
+            plot_area.queue_draw();
+        }
+
+        // Pan the plot
+        if state_cell.borrow().mouse_state.middle_right_button_held {
+            let (xi, yi) = event.position();
+            let (xp, yp) = plot_coords_from_image_coords(xi, yi, state_cell.clone());
+            let (xi_last, yi_last) = state_cell.borrow().mouse_state.last_position;
+            let (xp_last, yp_last) = plot_coords_from_image_coords(xi_last, yi_last, state_cell.clone());
+
+            let delta_x = xp - xp_last;
+            let delta_y = yp - yp_last;
+
+            let (x_min, x_max) = state_cell.borrow().plot_range_x_actual.get();
+            let (y_min, y_max) = state_cell.borrow().plot_range_y_actual.get();
+
+            let x_min_new = x_min - delta_x;
+            let x_max_new = x_max - delta_x;
+            let y_min_new = y_min - delta_y;
+            let y_max_new = y_max - delta_y;
+
+            autoscale_x_toggle.set_active(false);
+            autoscale_y_toggle.set_active(false);
+
+            state_cell.borrow_mut().plot_settings.plot_range_x = PlotRange::Fixed((x_min_new, x_max_new));
+            state_cell.borrow_mut().plot_settings.plot_range_y = PlotRange::Fixed((y_min_new, y_max_new));
+
+            x_min_entry.set_text(&format!("{:.3}", x_min_new));
+            x_max_entry.set_text(&format!("{:.3}", x_max_new));
+            y_min_entry.set_text(&format!("{:.3}", y_min_new));
+            y_max_entry.set_text(&format!("{:.3}", y_max_new));
+
+            state_cell.borrow_mut().update_needed = true;
+        }
+
+        state_cell.borrow_mut().mouse_state.last_position = event.position();
+
         Inhibit(false)
     }));
 

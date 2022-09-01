@@ -195,7 +195,9 @@ impl State {
 
 pub struct MouseState {
     pub position: (f64, f64),
+    pub last_position: (f64, f64),
     pub left_button_held: bool,
+    pub middle_right_button_held: bool,
     pub drag_start: (f64, f64),
 }
 
@@ -203,7 +205,9 @@ impl MouseState {
     pub fn new() -> Self {
         MouseState {
             position: (0.0, 0.0),
+            last_position: (0.0, 0.0),
             left_button_held: false,
+            middle_right_button_held: false,
             drag_start: (0.0, 0.0),
         }
     }
