@@ -11,6 +11,15 @@ pub enum PlotRange {
     Fixed(Range),
 }
 
+impl PlotRange {
+    pub fn get(&self) -> Range {
+        match self {
+            &PlotRange::Auto => (-1.0, 0.0),
+            &PlotRange::Fixed(range) => range,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct PlotSettings {
     pub plot_range_x: PlotRange,

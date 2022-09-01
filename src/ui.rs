@@ -34,9 +34,6 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
     window.set_default_width(1200);
     window.set_default_height(800);
 
-    // Plot Image setup
-    let plot_area = setup_plot_area(builder.clone(), state_cell.clone());
-
     // Play/Pause button setup
     let _play_pause_button = setup_play_pause_button(builder.clone(), state_cell.clone());
 
@@ -63,6 +60,9 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
 
     // Plot range entry setup
     let (x_min_entry, x_max_entry, y_min_entry, y_max_entry) = setup_plot_range_entries(builder.clone(), state_cell.clone(), (autoscale_x_toggle, autoscale_y_toggle));
+
+    // Plot Image setup
+    let plot_area = setup_plot_area(builder.clone(), state_cell.clone());
 
     // Load button setup
     let _load_button = setup_load_button(builder.clone(), state_cell.clone(), window.clone());
@@ -100,14 +100,8 @@ pub fn build_ui(application: &Application, state_cell: Rc<RefCell<State>>) {
 
                     // Update range entries
                     let (plot_range_x, plot_range_y) = r;
-                    let (x_min, x_max) = match plot_range_x {
-                        PlotRange::Fixed(x_range) => x_range.clone(),
-                        PlotRange::Auto => (0.0, 1.0),
-                    };
-                    let (y_min, y_max) = match plot_range_y {
-                        PlotRange::Fixed(y_range) => y_range.clone(),
-                        PlotRange::Auto => (0.0, 1.0),
-                    };
+                    let (x_min, x_max) = plot_range_x.get();
+                    let (y_min, y_max) = plot_range_y.get();
 
                     // Pick formatting depending on the actual value
                     // switch to scientific notation for small and large values
@@ -186,21 +180,115 @@ fn setup_plot_area(builder: Builder, state_cell: Rc<RefCell<State>>) -> gtk::Dra
     let plot_area: DrawingArea = builder.object("plot_area")
         .expect("Failed to get plot_area");
 
-    let state_cell_clone = state_cell.clone();
-    plot_area.connect_draw(move |_, cr| {
-        if let Some(buf) = &state_cell_clone.borrow().plot_image_pixbuf {
+    plot_area.connect_draw(clone!(@strong state_cell => move |_, cr| {
+        // Draw the plot itself
+        if let Some(buf) = &state_cell.borrow().plot_image_pixbuf {
             cr.set_source_pixbuf(&buf, 0.0, 0.0);
         }
-        match cr.paint() {
-            Err(e) => println!("{:?}", e),
-            _ => ()
-        }
-        gtk::Inhibit(false)
-    });
+        cr.paint().expect("Failed to paint plot image pixbuf");
 
+        // If the left mouse button is being held, draw a selection box
+        if state_cell.borrow().mouse_state.left_button_held {
+            // Using white as source and difference as the operator effectively inverts colors
+            cr.set_source_rgb(1.0, 1.0, 1.0);
+            cr.set_operator(gdk::cairo::Operator::Difference);
+            cr.set_line_width(1.0);
+
+            let (x_start, y_start) = state_cell.borrow().mouse_state.drag_start;
+            let (x_end, y_end) = state_cell.borrow().mouse_state.position;
+            cr.rectangle(x_start, y_start, x_end - x_start, y_end - y_start);
+            cr.stroke().expect("Failed to draw selection box");
+        }
+
+        gtk::Inhibit(false)
+    }));
+
+    // The eventbox lets us capture events like clicking and scrolling
     let plot_area_event_box: EventBox = builder.object("plot_area_event_box")
         .expect("Failed to get plot_area_event_box");
+    
+    // Handle mouse button press
+    plot_area_event_box.add_events(gdk::EventMask::BUTTON_PRESS_MASK);
+    plot_area_event_box.connect_button_press_event(clone!(@strong state_cell,
+                                                          @strong plot_area => move |_, event| {
+        if event.button() == 1 { // Left Mouse Button
+            state_cell.borrow_mut().mouse_state.left_button_held = true;
+            state_cell.borrow_mut().mouse_state.drag_start = event.position();
+            plot_area.queue_draw();
+        }
 
+        Inhibit(false)
+    }));
+
+    // Handle mouse button release
+    plot_area_event_box.add_events(gdk::EventMask::BUTTON_RELEASE_MASK);
+    let x_min_entry: Entry = builder.object("x_min_entry")
+        .expect("Failed to get x_min_entry");
+    let x_max_entry: Entry = builder.object("x_max_entry")
+        .expect("Failed to get x_max_entry");
+    let y_min_entry: Entry = builder.object("y_min_entry")
+        .expect("Failed to get y_min_entry");
+    let y_max_entry: Entry = builder.object("y_max_entry")
+        .expect("Failed to get y_max_entry");
+    let autoscale_x_toggle: ToggleButton = builder.object("autoscale_x_toggle")
+        .expect("Failed to get autoscale_x_toggle");
+    let autoscale_y_toggle: ToggleButton = builder.object("autoscale_y_toggle")
+        .expect("Failed to get autoscale_y_toggle");
+
+    plot_area_event_box.connect_button_release_event(clone!(@strong state_cell,
+                                                            @strong plot_area,
+                                                            @strong x_min_entry,
+                                                            @strong x_max_entry,
+                                                            @strong y_min_entry,
+                                                            @strong y_max_entry,
+                                                            @strong autoscale_x_toggle,
+                                                            @strong autoscale_y_toggle => move |_, event| {
+        if event.button() == 1 { // Left Mouse Button
+            state_cell.borrow_mut().mouse_state.left_button_held = false;
+            plot_area.queue_draw();
+
+            // Calculate new plot ranges
+            let drag_start = state_cell.borrow().mouse_state.drag_start;
+            let drag_end = event.position();
+
+            if drag_start != drag_end {
+
+                let (x_range_new, y_range_new) = plot_range_from_selection(drag_start, drag_end, state_cell.clone());
+
+                // Disable autoscale toggles
+                autoscale_x_toggle.set_active(false);
+                autoscale_y_toggle.set_active(false);
+
+                // Change plot settings 
+                state_cell.borrow_mut().plot_settings.plot_range_x = x_range_new;
+                state_cell.borrow_mut().plot_settings.plot_range_y = y_range_new;
+
+                // Update range entries
+                let (x_min, x_max) = x_range_new.get();
+                let (y_min, y_max) = y_range_new.get();
+                x_min_entry.set_text(&format!("{:.3}", x_min));
+                x_max_entry.set_text(&format!("{:.3}", x_max));
+                y_min_entry.set_text(&format!("{:.3}", y_min));
+                y_max_entry.set_text(&format!("{:.3}", y_max));
+                
+                // Make sure a new plot is rendered
+                state_cell.borrow_mut().update_needed = true;
+            }
+        }
+
+        Inhibit(false)
+    }));
+
+    // Handle mouse movement
+    plot_area_event_box.add_events(gdk::EventMask::POINTER_MOTION_MASK);
+    plot_area_event_box.connect_motion_notify_event(clone!(@strong state_cell,
+                                                           @strong plot_area => move |_, event| {
+        state_cell.borrow_mut().mouse_state.position = event.position();
+        plot_area.queue_draw();
+        Inhibit(false)
+    }));
+
+    // Handle mouse wheel scrolling
     plot_area_event_box.add_events(gdk::EventMask::SCROLL_MASK);
     plot_area_event_box.connect_scroll_event(move |_, event| {
         let (_x, _y) = event.position();
@@ -208,6 +296,7 @@ fn setup_plot_area(builder: Builder, state_cell: Rc<RefCell<State>>) -> gtk::Dra
         Inhibit(false)
     });
 
+    // The viewport is responsible for sizing the area
     let plot_area_viewport: Viewport = builder.object("plot_area_viewport")
         .expect("Failed to get plot_area_viewport");
     plot_area_viewport.connect_size_allocate(clone!(@weak state_cell => move |_, allocation| {
@@ -583,16 +672,8 @@ fn update_ranges(x_min_entry: &Entry,
                  y_toggle: &ToggleButton,
                  state_cell: Rc<RefCell<State>>) -> () {
 
-    let (x_min_old, x_max_old) = match state_cell.borrow().plot_range_x_actual {
-        PlotRange::Fixed(range) => range,
-        PlotRange::Auto => (0.0, 1.0),
-    };
-
-
-    let (y_min_old, y_max_old) = match state_cell.borrow().plot_range_y_actual {
-        PlotRange::Fixed(range) => range,
-        PlotRange::Auto => (0.0, 1.0),
-    };
+    let (x_min_old, x_max_old) = state_cell.borrow().plot_range_x_actual.get();
+    let (y_min_old, y_max_old) = state_cell.borrow().plot_range_y_actual.get();
 
     let x_min_text = x_min_entry.buffer().text();
     let x_max_text = x_max_entry.buffer().text();
@@ -641,4 +722,87 @@ fn update_ranges(x_min_entry: &Entry,
     state_cell.borrow_mut().plot_settings.plot_range_y = y_range_new;
     
     state_cell.borrow_mut().update_needed = true;
+}
+
+fn plot_range_from_selection(image_pos_1: (f64, f64),
+                             image_pos_2: (f64, f64),
+                             state_cell: Rc<RefCell<State>>) -> (PlotRange, PlotRange) {
+    // CAUTION: Image coordinates are measured from the top, plot coordinates from the bottom!
+
+    // Image coordinates of the selection
+    let (xi1, yi1) = image_pos_1;
+    let (xi2, yi2) = image_pos_2;
+    let xi_min = xi1.min(xi2);
+    let xi_max = xi1.max(xi2);
+    let yi_min = yi1.min(yi2);
+    let yi_max = yi1.max(yi2);
+
+    // Extents of the full plot image
+    let (image_width, image_height) = if let Some(buf) = &state_cell.borrow().plot_image_pixbuf {
+        (buf.width() as f64, buf.height() as f64)
+    } else {
+        return (PlotRange::Auto, PlotRange::Auto)
+    };
+
+    // Images generated by plotters have margins on the left and bottom
+    const MARGIN_LEFT: f64 = 50.0;
+    const MARGIN_BOTTOM: f64 = 21.0;
+
+    // Adjust image coordinates and extents to take margins into account
+    // Also clip selection to the plot area
+    let image_width = image_width - MARGIN_LEFT;
+    let image_height = image_height - MARGIN_BOTTOM;
+    let xi_min = (xi_min - MARGIN_LEFT).max(0.0);
+    let xi_max = (xi_max - MARGIN_LEFT).min(image_width);
+    let yi_min = yi_min.max(0.0);
+    let yi_max = yi_max.min(image_height);
+
+    // Current plot ranges
+    let (xp_min, xp_max) = state_cell.borrow().plot_range_x_actual.get();
+    let (yp_min, yp_max) = state_cell.borrow().plot_range_y_actual.get();
+
+    let log_x = state_cell.borrow().plot_settings.use_logscale_x;
+    let log_y = state_cell.borrow().plot_settings.use_logscale_y;
+
+    let plot_width = if log_x {
+        xp_max.log(10.0) - xp_min.log(10.0)
+    } else {
+        xp_max - xp_min
+    };
+
+    let plot_height = if log_y {
+        yp_max.log(10.0) - yp_min.log(10.0)
+    } else {
+        yp_max - yp_min
+    };
+
+    // Map image coordinates to plot coordinates
+    // Here, y_max and y_min have opposite meanings between image and plot coordinates
+    let xp_min_new = if log_x {
+        10.0_f64.powf((xi_min / image_width) * plot_width + xp_min.log(10.0))
+    } else {
+        (xi_min / image_width) * plot_width + xp_min
+    };
+
+    let xp_max_new = if log_x {
+        10.0_f64.powf((xi_max / image_width) * plot_width + xp_min.log(10.0))
+    } else {
+        (xi_max / image_width) * plot_width + xp_min
+    };
+
+    let yp_min_new = if log_y {
+        10.0_f64.powf((1.0 - (yi_max / image_height)) * plot_height + yp_min.log(10.0))
+    } else {
+        (1.0 - (yi_max / image_height)) * plot_height + yp_min
+    };
+    let yp_max_new = if log_y {
+        10.0_f64.powf((1.0 - (yi_min / image_height)) * plot_height + yp_min.log(10.0))
+    } else {
+        (1.0 - (yi_min / image_height)) * plot_height + yp_min
+    };
+
+    let x_range = PlotRange::Fixed((xp_min_new, xp_max_new));
+    let y_range = PlotRange::Fixed((yp_min_new, yp_max_new));
+
+    (x_range, y_range)
 }

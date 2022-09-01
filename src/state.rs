@@ -28,6 +28,7 @@ pub struct State {
     pub plot_area_size: (u32, u32),
     pub plot_image_string: Option<String>,
     pub plot_image_pixbuf: Option<Pixbuf>,
+    pub mouse_state: MouseState,
 }
 
 impl State {
@@ -51,6 +52,7 @@ impl State {
             plot_area_size: (600,400),
             plot_image_string: None,
             plot_image_pixbuf: None,
+            mouse_state: MouseState::new(),
         }
     }
 
@@ -188,5 +190,21 @@ impl State {
             return true;
         }
         false
+    }
+}
+
+pub struct MouseState {
+    pub position: (f64, f64),
+    pub left_button_held: bool,
+    pub drag_start: (f64, f64),
+}
+
+impl MouseState {
+    pub fn new() -> Self {
+        MouseState {
+            position: (0.0, 0.0),
+            left_button_held: false,
+            drag_start: (0.0, 0.0),
+        }
     }
 }
