@@ -1,3 +1,4 @@
+use gdk::{ModifierType, ScrollDirection, EventScroll};
 use glib::timeout_add_local;
 use std::time::Duration;
 use std::sync::{Arc, Mutex};
@@ -290,11 +291,31 @@ fn setup_plot_area(builder: Builder, state_cell: Rc<RefCell<State>>) -> gtk::Dra
 
     // Handle mouse wheel scrolling
     plot_area_event_box.add_events(gdk::EventMask::SCROLL_MASK);
-    plot_area_event_box.connect_scroll_event(move |_, event| {
-        let (_x, _y) = event.position();
-        // println!("scroll at ({}, {})!", x, y);
+    plot_area_event_box.connect_scroll_event(clone!(@strong state_cell,
+                                                            @strong plot_area,
+                                                            @strong x_min_entry,
+                                                            @strong x_max_entry,
+                                                            @strong y_min_entry,
+                                                            @strong y_max_entry,
+                                                            @strong autoscale_x_toggle,
+                                                            @strong autoscale_y_toggle => move |_, event| {
+        let scroll_factor = 0.05;
+        let (x_range, y_range) = plot_range_after_scroll(state_cell.clone(), event, scroll_factor);
+
+        if x_range != state_cell.borrow().plot_settings.plot_range_x {
+            autoscale_x_toggle.set_active(false);
+            state_cell.borrow_mut().plot_settings.plot_range_x = x_range;
+        }
+
+        if y_range != state_cell.borrow().plot_settings.plot_range_y {
+            autoscale_y_toggle.set_active(false);
+            state_cell.borrow_mut().plot_settings.plot_range_y = y_range;
+        }
+
+        state_cell.borrow_mut().update_needed = true;
+
         Inhibit(false)
-    });
+    }));
 
     // The viewport is responsible for sizing the area
     let plot_area_viewport: Viewport = builder.object("plot_area_viewport")
@@ -737,11 +758,173 @@ fn plot_range_from_selection(image_pos_1: (f64, f64),
     let yi_min = yi1.min(yi2);
     let yi_max = yi1.max(yi2);
 
+    if let None = &state_cell.borrow().plot_image_pixbuf {
+        return (PlotRange::Auto, PlotRange::Auto)
+    };
+
+    let (xp_min_new, yp_min_new) = plot_coords_from_image_coords(xi_min, yi_max, state_cell.clone());
+    let (xp_max_new, yp_max_new) = plot_coords_from_image_coords(xi_max, yi_min, state_cell.clone());
+
+    let x_range = PlotRange::Fixed((xp_min_new, xp_max_new));
+    let y_range = PlotRange::Fixed((yp_min_new, yp_max_new));
+
+    (x_range, y_range)
+}
+
+fn plot_range_after_scroll(state_cell: Rc<RefCell<State>>, event: &EventScroll, scroll_factor: f64) -> (PlotRange, PlotRange) {
+    let shift_pressed = event.state().contains(ModifierType::SHIFT_MASK);
+    let ctrl_pressed = event.state().contains(ModifierType::CONTROL_MASK);
+    let alt_pressed = event.state().contains(ModifierType::MOD1_MASK);
+
+    let (xi, yi) = event.position();
+    let (xp, yp) = plot_coords_from_image_coords(xi, yi, state_cell.clone());
+
+    let x_range_old = state_cell.borrow().plot_settings.plot_range_x;
+    let y_range_old = state_cell.borrow().plot_settings.plot_range_y;
+
+    let (x_min, x_max) = state_cell.borrow().plot_range_x_actual.get();
+    let (y_min, y_max) = state_cell.borrow().plot_range_y_actual.get();
+
+    let mut x_changed = false;
+    let mut y_changed = false;
+
+    let mut x_min_new = x_min;
+    let mut x_max_new = x_max;
+    let mut y_min_new = y_min;
+    let mut y_max_new = y_max;
+
+
+    if ctrl_pressed { // zooming
+        let dx_plus = x_max - xp;
+        let dx_minus = xp - x_min;
+        let dy_plus = y_max - yp;
+        let dy_minus = yp - y_min;
+
+        match event.direction() {
+            ScrollDirection::Up => {
+                if !alt_pressed {
+                    x_min_new = x_min + 2.0 * scroll_factor * dx_minus;
+                    x_max_new = x_max - 2.0 * scroll_factor * dx_plus;
+                    x_changed = true;
+                }
+                if !shift_pressed {
+                    y_min_new = y_min + 2.0 * scroll_factor * dy_minus;
+                    y_max_new = y_max - 2.0 * scroll_factor * dy_plus;
+                    y_changed = true;
+                }
+            },
+            ScrollDirection::Down => {
+                if !alt_pressed {
+                    x_min_new = x_min - 2.0 * scroll_factor * dx_minus;
+                    x_max_new = x_max + 2.0 * scroll_factor * dx_plus;
+                    x_changed = true;
+                }
+                if !shift_pressed {
+                    y_min_new = y_min - 2.0 * scroll_factor * dy_minus;
+                    y_max_new = y_max + 2.0 * scroll_factor * dy_plus;
+                    y_changed = true;
+                }
+            },
+            ScrollDirection::Right => {
+                if !shift_pressed {
+                    x_min_new = x_min + 2.0 * scroll_factor * dx_minus;
+                    x_max_new = x_max - 2.0 * scroll_factor * dx_plus;
+                    x_changed = true;
+                }
+                if !alt_pressed {
+                    y_min_new = y_min + 2.0 * scroll_factor * dy_minus;
+                    y_max_new = y_max - 2.0 * scroll_factor * dy_plus;
+                    y_changed = true;
+                }
+            },
+            ScrollDirection::Left => {
+                if !shift_pressed {
+                    x_min_new = x_min + 2.0 * scroll_factor * dx_minus;
+                    x_max_new = x_max - 2.0 * scroll_factor * dx_plus;
+                    x_changed = true;
+                }
+                if !alt_pressed {
+                    y_min_new = y_min + 2.0 * scroll_factor * dy_minus;
+                    y_max_new = y_max - 2.0 * scroll_factor * dy_plus;
+                    y_changed = true;
+                }
+            },
+            _ => {},
+        }
+    } else { // scrolling
+        let dx = x_max - x_min;
+        let dy = y_max - y_min;
+
+        match event.direction() {
+            ScrollDirection::Up => {
+                if shift_pressed {
+                    x_min_new = x_min - scroll_factor * dx;
+                    x_max_new = x_max - scroll_factor * dx;
+                    x_changed = true;    
+                } else {
+                    y_min_new = y_min + scroll_factor * dy;
+                    y_max_new = y_max + scroll_factor * dy;
+                    y_changed = true;
+                }
+            },
+            ScrollDirection::Down => {
+                if shift_pressed {
+                    x_min_new = x_min + scroll_factor * dx;
+                    x_max_new = x_max + scroll_factor * dx;
+                    x_changed = true;    
+                } else {
+                    y_min_new = y_min - scroll_factor * dy;
+                    y_max_new = y_max - scroll_factor * dy;
+                    y_changed = true;
+                }
+            },
+            ScrollDirection::Right => {
+                if shift_pressed {
+                    y_min_new = y_min - scroll_factor * dy;
+                    y_max_new = y_max - scroll_factor * dy;
+                    y_changed = true;   
+                } else {
+                    x_min_new = x_min + scroll_factor * dx;
+                    x_max_new = x_max + scroll_factor * dx;
+                    x_changed = true;
+                }
+            },
+            ScrollDirection::Left => {
+                if shift_pressed {
+                    y_min_new = y_min + scroll_factor * dy;
+                    y_max_new = y_max + scroll_factor * dy;
+                    y_changed = true;   
+                } else {
+                    x_min_new = x_min - scroll_factor * dx;
+                    x_max_new = x_min - scroll_factor * dx;
+                    x_changed = true;
+                }
+            },
+            _ => {},
+        }
+    }
+
+    let x_range_new = if x_changed {
+        PlotRange::Fixed((x_min_new, x_max_new))
+    } else {
+        x_range_old
+    };
+
+    let y_range_new = if y_changed {
+        PlotRange::Fixed((y_min_new, y_max_new))
+    } else {
+        y_range_old
+    };
+
+    (x_range_new, y_range_new)
+}
+
+fn plot_coords_from_image_coords(xi: f64, yi: f64, state_cell: Rc<RefCell<State>>) -> (f64, f64) {
     // Extents of the full plot image
     let (image_width, image_height) = if let Some(buf) = &state_cell.borrow().plot_image_pixbuf {
         (buf.width() as f64, buf.height() as f64)
     } else {
-        return (PlotRange::Auto, PlotRange::Auto)
+        return (0.0, 0.0)
     };
 
     // Images generated by plotters have margins on the left and bottom
@@ -752,10 +935,8 @@ fn plot_range_from_selection(image_pos_1: (f64, f64),
     // Also clip selection to the plot area
     let image_width = image_width - MARGIN_LEFT;
     let image_height = image_height - MARGIN_BOTTOM;
-    let xi_min = (xi_min - MARGIN_LEFT).max(0.0);
-    let xi_max = (xi_max - MARGIN_LEFT).min(image_width);
-    let yi_min = yi_min.max(0.0);
-    let yi_max = yi_max.min(image_height);
+    let xi = (xi - MARGIN_LEFT).max(0.0);
+    let yi = yi.max(0.0);
 
     // Current plot ranges
     let (xp_min, xp_max) = state_cell.borrow().plot_range_x_actual.get();
@@ -778,31 +959,17 @@ fn plot_range_from_selection(image_pos_1: (f64, f64),
 
     // Map image coordinates to plot coordinates
     // Here, y_max and y_min have opposite meanings between image and plot coordinates
-    let xp_min_new = if log_x {
-        10.0_f64.powf((xi_min / image_width) * plot_width + xp_min.log(10.0))
+    let xp = if log_x {
+        10.0_f64.powf((xi / image_width) * plot_width + xp_min.log(10.0))
     } else {
-        (xi_min / image_width) * plot_width + xp_min
+        (xi / image_width) * plot_width + xp_min
     };
 
-    let xp_max_new = if log_x {
-        10.0_f64.powf((xi_max / image_width) * plot_width + xp_min.log(10.0))
+    let yp = if log_y {
+        10.0_f64.powf((1.0 - (yi / image_height)) * plot_height + yp_min.log(10.0))
     } else {
-        (xi_max / image_width) * plot_width + xp_min
+        (1.0 - (yi / image_height)) * plot_height + yp_min
     };
 
-    let yp_min_new = if log_y {
-        10.0_f64.powf((1.0 - (yi_max / image_height)) * plot_height + yp_min.log(10.0))
-    } else {
-        (1.0 - (yi_max / image_height)) * plot_height + yp_min
-    };
-    let yp_max_new = if log_y {
-        10.0_f64.powf((1.0 - (yi_min / image_height)) * plot_height + yp_min.log(10.0))
-    } else {
-        (1.0 - (yi_min / image_height)) * plot_height + yp_min
-    };
-
-    let x_range = PlotRange::Fixed((xp_min_new, xp_max_new));
-    let y_range = PlotRange::Fixed((yp_min_new, yp_max_new));
-
-    (x_range, y_range)
+    (xp, yp)
 }

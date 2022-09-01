@@ -5,7 +5,7 @@ use rayon::prelude::*;
 
 pub type Range = (f64, f64);
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum PlotRange {
     Auto,
     Fixed(Range),
