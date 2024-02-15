@@ -1,6 +1,15 @@
 # Installation
 
-## Linux
+## Using Nix
+
+The repository is a nix flake, providing `muninn` as its default output.
+It can be run directly using
+```
+nix run "git+https://git.tpi.uni-jena.de/srenkhoff/muninn.git"
+```
+It also includes a `default.nix` to build and install on non-flake systems.
+
+## Other linux
 To compile muninn yourself, install [rustup](https://rustup.rs/).
 You may also need to install gtk3 using your favourite package manager, e.g.:
 
