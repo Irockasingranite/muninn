@@ -1,6 +1,6 @@
 [package]
 name = "muninn"
-version = "1.1.0"
+version = "1.1.1"
 authors = ["Sarah Renkhoff <sarah.renkhoff@gmail.com>"]
 edition = "2018"
 license = "MIT"
