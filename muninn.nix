@@ -6,7 +6,7 @@ rustPlatform.buildRustPackage {
 
   src = ./.;
 
-  cargoHash = "sha256-/x5NkiCZM2wCiuN5MJE8r3Zi0zmDyjKEBYfOm+u4uFE=";
+  cargoHash = "sha256-pRHZx1Jm0dZxCgXwdWagQjnDw7FaBTRuSBH+eDXdmww=";
 
   nativeBuildInputs = [ cmake pkg-config wrapGAppsHook ];
 
