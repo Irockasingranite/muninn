@@ -7,14 +7,17 @@ use relm4::{
 };
 
 use super::header::{HeaderModel, HeaderOutput};
+use super::player::PlayerModel;
 
 pub struct AppModel {
     header: Controller<HeaderModel>,
+    player: Controller<PlayerModel>,
 }
 
 #[derive(Debug)]
 pub enum AppMsg {
     OpenFiles(Vec<PathBuf>),
+    Ignore,
 }
 
 #[relm4::component(pub)]
@@ -31,8 +34,22 @@ impl SimpleComponent for AppModel {
 
             set_titlebar: Some(model.header.widget()),
 
-            gtk::Label {
-                set_label: "Hello Muninn!",
+            gtk::Box {
+                set_orientation: gtk::Orientation::Vertical,
+
+                model.player.widget(),
+
+                gtk::Label {
+                    set_label: "Hello Muninn!",
+                },
+
+                if model.player.model().is_playing {
+                    gtk::Label {
+                        set_label: "Playing!",
+                    }
+                } else {
+                    gtk::Label {}
+                },
             },
         }
     }
@@ -48,7 +65,11 @@ impl SimpleComponent for AppModel {
                 HeaderOutput::OpenFiles(paths) => AppMsg::OpenFiles(paths),
             });
 
-        let model = AppModel { header };
+        let player = PlayerModel::builder()
+            .launch(())
+            .forward(sender.input_sender(), |_| AppMsg::Ignore);
+
+        let model = AppModel { header, player };
         let widgets = view_output!();
         ComponentParts { model, widgets }
     }
@@ -56,6 +77,7 @@ impl SimpleComponent for AppModel {
     fn update(&mut self, msg: Self::Input, _sender: ComponentSender<Self>) {
         match msg {
             AppMsg::OpenFiles(paths) => println!("Opening {:?}", paths),
+            AppMsg::Ignore => (),
         }
     }
 }
