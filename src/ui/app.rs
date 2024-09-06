@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+use crate::data::Data;
+
 use gtk::prelude::*;
 use relm4::{
     gtk, Component, ComponentController, ComponentParts, ComponentSender, Controller,
@@ -10,6 +12,7 @@ use super::header::{HeaderModel, HeaderOutput};
 use super::player::PlayerModel;
 
 pub struct AppModel {
+    data: Data,
     header: Controller<HeaderModel>,
     player: Controller<PlayerModel>,
 }
@@ -22,7 +25,7 @@ pub enum AppMsg {
 
 #[relm4::component(pub)]
 impl SimpleComponent for AppModel {
-    type Init = ();
+    type Init = Data;
     type Input = AppMsg;
     type Output = ();
 
@@ -43,6 +46,10 @@ impl SimpleComponent for AppModel {
                     set_label: "Hello Muninn!",
                 },
 
+                gtk::Label {
+                    set_label: &format!("{} timeslices loaded", model.data.times().len()),
+                },
+
                 if model.player.model().is_playing {
                     gtk::Label {
                         set_label: "Playing!",
@@ -55,7 +62,7 @@ impl SimpleComponent for AppModel {
     }
 
     fn init(
-        _init: Self::Init,
+        data: Self::Init,
         root: Self::Root,
         sender: ComponentSender<Self>,
     ) -> ComponentParts<Self> {
@@ -69,7 +76,12 @@ impl SimpleComponent for AppModel {
             .launch(())
             .forward(sender.input_sender(), |_| AppMsg::Ignore);
 
-        let model = AppModel { header, player };
+        let model = AppModel {
+            data,
+            header,
+            player,
+        };
+
         let widgets = view_output!();
         ComponentParts { model, widgets }
     }

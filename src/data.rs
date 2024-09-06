@@ -29,8 +29,12 @@ impl DataSlice {
 
     pub fn sort(&mut self) {
         self.datalines.sort_by(|a, b| {
-            let min_a = a.iter().min_by(|(x1, _), (x2, _)| x1.partial_cmp(x2).unwrap());
-            let min_b = b.iter().min_by(|(x1, _), (x2, _)| x1.partial_cmp(x2).unwrap());
+            let min_a = a
+                .iter()
+                .min_by(|(x1, _), (x2, _)| x1.partial_cmp(x2).unwrap());
+            let min_b = b
+                .iter()
+                .min_by(|(x1, _), (x2, _)| x1.partial_cmp(x2).unwrap());
             min_a.partial_cmp(&min_b).unwrap()
         });
     }
@@ -57,8 +61,8 @@ pub struct Data {
 }
 
 impl Data {
-    fn new() -> Data {
-        Data{
+    pub fn new() -> Data {
+        Data {
             dataslices: Vec::new(),
             start_time: 0.0,
             end_time: 0.0,
@@ -67,13 +71,11 @@ impl Data {
 
     pub fn from_files(filenames: Vec<String>) -> Option<Data> {
         use indicatif::{ProgressBar, ProgressStyle};
-        let pb_style = ProgressStyle::default_bar()
-            .template("{msg} [{pos}/{len}] {wide_bar}");
+        let pb_style = ProgressStyle::default_bar().template("{msg} [{pos}/{len}] {wide_bar}");
         let mut data = Data::new();
 
         // Collect data from all files, tagged with their time values
-        let progress_bar = ProgressBar::new(filenames.len() as u64)
-            .with_message("Loading files:");
+        let progress_bar = ProgressBar::new(filenames.len() as u64).with_message("Loading files:");
         progress_bar.set_style(pb_style.clone());
         let mut time_line_pairs = Vec::new();
         for filename in filenames {
@@ -89,8 +91,8 @@ impl Data {
             return None;
         }
 
-        let progress_bar = ProgressBar::new(time_line_pairs.len() as u64)
-            .with_message("Processing data:");
+        let progress_bar =
+            ProgressBar::new(time_line_pairs.len() as u64).with_message("Processing data:");
         progress_bar.set_style(pb_style.clone());
 
         // Sort all datalines by time
@@ -110,13 +112,13 @@ impl Data {
                 } else {
                     data.dataslices.push(DataSlice {
                         time: t,
-                        datalines: vec![l]
+                        datalines: vec![l],
                     });
                 }
             } else {
                 data.dataslices.push(DataSlice {
                     time: t,
-                    datalines: vec![l]
+                    datalines: vec![l],
                 });
             }
             progress_bar.inc(1);
@@ -151,8 +153,8 @@ impl Data {
 
 fn read_datalines_from_file(filename: &str) -> Result<Vec<(Time, DataLine)>> {
     use std::fs::File;
-    use std::io::BufReader;
     use std::io::prelude::*;
+    use std::io::BufReader;
 
     let file = File::open(filename)?;
     let reader = BufReader::new(file);
@@ -173,14 +175,14 @@ fn read_datalines_from_file(filename: &str) -> Result<Vec<(Time, DataLine)>> {
                 // Begin a new dataline
                 datalines.push(DataLine::new());
             }
-          // Add points to the latest dataline  
+            // Add points to the latest dataline
         } else if let Some(dataline) = datalines.last_mut() {
             let words: Vec<&str> = line.trim().split_whitespace().collect();
-            if words.len() >= 2 { // ignore malformed lines, e.g. caused by a program being stopped mid-write
-                if let (Ok(x), Ok(y)) = (words[0].parse::<f64>(),
-                                         words[1].parse::<f64>()) {
+            if words.len() >= 2 {
+                // ignore malformed lines, e.g. caused by a program being stopped mid-write
+                if let (Ok(x), Ok(y)) = (words[0].parse::<f64>(), words[1].parse::<f64>()) {
                     if !x.is_nan() && !y.is_nan() {
-                        dataline.push((x,y));
+                        dataline.push((x, y));
                     }
                 }
             }
