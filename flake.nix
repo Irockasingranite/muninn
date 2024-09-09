@@ -7,10 +7,14 @@
     (
 
       flake-utils.lib.eachDefaultSystem (system:
-        let pkgs = nixpkgs.legacyPackages.${system};
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+          muninn = pkgs.callPackage ./muninn.nix { };
+
         in {
           formatter = pkgs.nixfmt;
-          packages.default = pkgs.callPackage ./muninn.nix { };
-          devShells.default = pkgs.callPackage ./shell.nix { };
+          packages.muninn = muninn;
+          packages.default = muninn;
+          devShells.default = pkgs.callPackage ./shell.nix { inherit muninn; };
         }));
 }

@@ -1,16 +1,16 @@
-{ lib, rustPlatform, cmake, pkg-config, gtk3, glibc, wrapGAppsHook }:
+{ lib, rustPlatform, cmake, pkg-config, gtk4, wrapGAppsHook }:
 
 rustPlatform.buildRustPackage {
   pname = "muninn";
-  version = "1.1.0";
+  version = "2.0.0";
 
   src = ./.;
 
-  cargoHash = "sha256-9aFsDxouaQcRqa6hZ5HBPQNO01j3v2lpfoY9dk/YzxY=";
+  cargoHash = "sha256-/x5NkiCZM2wCiuN5MJE8r3Zi0zmDyjKEBYfOm+u4uFE=";
 
   nativeBuildInputs = [ cmake pkg-config wrapGAppsHook ];
 
-  buildInputs = [ gtk3 glibc ];
+  buildInputs = [ gtk4 ];
 
   meta = with lib; {
     description = "A 1D timeseries visualization tool";

@@ -1,9 +1,9 @@
-{ mkShell, cargo, rustc, cmake, pkg-config, glibc, gtk3, librsvg }:
+{ mkShell, muninn }:
 
 mkShell {
-  packages = [ cmake cargo rustc pkg-config glibc gtk3 librsvg ];
+  inputsFrom = [ muninn ];
 
   shellHook = ''
-    export XDG_DATA_DIRS=$GSETTINGS_SCHEMAS_PATH
+    export XDG_DATA_DIRS=$XDG_DATA_DIRS:$GSETTINGS_SCHEMAS_PATH
   '';
 }
