@@ -7,6 +7,8 @@ use crate::data::Data;
 mod app;
 mod header;
 mod player;
+mod player_controls;
+mod player_settings;
 
 pub fn run_app() {
     let mut flags = ApplicationFlags::empty();

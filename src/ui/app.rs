@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use crate::data::Data;
 
 use gtk::prelude::*;
@@ -9,17 +7,16 @@ use relm4::{
 };
 
 use super::header::{HeaderModel, HeaderOutput};
-use super::player::PlayerModel;
+use super::player::{PlayerModel, PlayerMsg};
 
 pub struct AppModel {
-    data: Data,
     header: Controller<HeaderModel>,
     player: Controller<PlayerModel>,
 }
 
 #[derive(Debug)]
 pub enum AppMsg {
-    OpenFiles(Vec<PathBuf>),
+    OpenFiles(Vec<String>),
     Ignore,
 }
 
@@ -32,8 +29,8 @@ impl SimpleComponent for AppModel {
     view! {
         gtk::Window {
             set_title: Some("Muninn"),
-            set_default_width: 800,
-            set_default_height: 600,
+            set_default_width: 1200,
+            set_default_height: 800,
 
             set_titlebar: Some(model.header.widget()),
 
@@ -41,22 +38,6 @@ impl SimpleComponent for AppModel {
                 set_orientation: gtk::Orientation::Vertical,
 
                 model.player.widget(),
-
-                gtk::Label {
-                    set_label: "Hello Muninn!",
-                },
-
-                gtk::Label {
-                    set_label: &format!("{} timeslices loaded", model.data.times().len()),
-                },
-
-                if model.player.model().is_playing {
-                    gtk::Label {
-                        set_label: "Playing!",
-                    }
-                } else {
-                    gtk::Label {}
-                },
             },
         }
     }
@@ -73,14 +54,10 @@ impl SimpleComponent for AppModel {
             });
 
         let player = PlayerModel::builder()
-            .launch(())
+            .launch(data)
             .forward(sender.input_sender(), |_| AppMsg::Ignore);
 
-        let model = AppModel {
-            data,
-            header,
-            player,
-        };
+        let model = AppModel { header, player };
 
         let widgets = view_output!();
         ComponentParts { model, widgets }
@@ -88,7 +65,11 @@ impl SimpleComponent for AppModel {
 
     fn update(&mut self, msg: Self::Input, _sender: ComponentSender<Self>) {
         match msg {
-            AppMsg::OpenFiles(paths) => println!("Opening {:?}", paths),
+            AppMsg::OpenFiles(paths) => {
+                if let Some(data) = Data::from_files(paths) {
+                    _ = self.player.sender().send(PlayerMsg::NewData(data));
+                }
+            }
             AppMsg::Ignore => (),
         }
     }

@@ -7,7 +7,7 @@ type Time = f64;
 pub type Point = (f64, f64);
 pub type DataLine = Vec<Point>;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct DataSlice {
     pub time: f64,
     pub datalines: Vec<DataLine>,
@@ -53,7 +53,7 @@ impl fmt::Display for DatafileReadError {
 
 impl Error for DatafileReadError {}
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Data {
     pub dataslices: Vec<DataSlice>,
     pub start_time: f64,

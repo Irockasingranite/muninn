@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use gtk::prelude::*;
 use relm4::{
     gtk, Component, ComponentController, ComponentParts, ComponentSender, Controller,
@@ -16,13 +14,13 @@ pub struct HeaderModel {
 #[derive(Debug)]
 pub enum HeaderInput {
     ShowOpenFilesDialog,
-    OpenFiles(Vec<PathBuf>),
+    OpenFiles(Vec<String>),
     Ignore,
 }
 
 #[derive(Debug)]
 pub enum HeaderOutput {
-    OpenFiles(Vec<PathBuf>),
+    OpenFiles(Vec<String>),
 }
 
 #[relm4::component(pub)]
@@ -52,12 +50,20 @@ impl SimpleComponent for HeaderModel {
                 ..Default::default()
             })
             .forward(sender.input_sender(), |msg| match msg {
-                OpenDialogResponse::Accept(paths) => HeaderInput::OpenFiles(paths),
+                OpenDialogResponse::Accept(paths) => {
+                    let paths = paths
+                        .iter()
+                        .map(|p| p.as_path().display().to_string())
+                        .collect();
+                    HeaderInput::OpenFiles(paths)
+                }
                 _ => HeaderInput::Ignore,
             });
 
         let model = HeaderModel { open_files_dialog };
+
         let widgets = view_output!();
+
         ComponentParts { model, widgets }
     }
 
