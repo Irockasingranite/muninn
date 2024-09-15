@@ -9,6 +9,8 @@ mod header;
 mod player;
 mod player_controls;
 mod player_settings;
+mod plot_view;
+mod plot_settings;
 
 pub fn run_app() {
     let mut flags = ApplicationFlags::empty();

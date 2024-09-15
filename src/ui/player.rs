@@ -4,7 +4,7 @@ use std::time::{Duration, Instant};
 
 use super::{
     player_controls::{PlayerControlsModel, PlayerControlsMsg},
-    player_settings::PlayerSettingsModel,
+    player_settings::PlayerSettingsModel, plot_view::PlotViewModel,
 };
 use gtk::prelude::*;
 use relm4::{
@@ -15,6 +15,7 @@ use relm4::{
 pub struct PlayerModel {
     controls: Controller<PlayerControlsModel>,
     settings: Controller<PlayerSettingsModel>,
+    plot_view: Controller<PlotViewModel>,
     state: PlayerState,
 }
 
@@ -66,15 +67,7 @@ impl SimpleComponent for PlayerModel {
                 model.settings.widget(),
             },
 
-            gtk::Label {
-                #[watch]
-                set_label: &format!("{} timesteps loaded", model.state.n_steps),
-            },
-
-            gtk::Label {
-                #[watch]
-                set_label: &format!("Showing step {} (time {:.3})", model.state.position, model.state.time()),
-            }
+            model.plot_view.widget(),
         },
     }
 
@@ -98,9 +91,14 @@ impl SimpleComponent for PlayerModel {
             .launch(())
             .forward(sender.input_sender(), |_| PlayerMsg::Ignore);
 
+        let plot_view = PlotViewModel::builder()
+            .launch(())
+            .forward(sender.input_sender(), |_| PlayerMsg::Ignore);
+
         let model = Self {
             controls,
             settings,
+            plot_view,
             state: PlayerState::from_data(data),
         };
 
